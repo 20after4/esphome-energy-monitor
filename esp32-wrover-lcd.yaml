@@ -1,0 +1,236 @@
+
+esphome:
+  name: esp32-wrover-test-m5stack
+  #libraries:
+    #- "light"
+  includes:
+    - lcd.h
+    #- src/esphome/components/light/esp_hsv_color.h
+esp32:
+  board: m5stack-core-esp32
+
+  framework:
+    type: esp-idf
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  ap:
+    ssid: "${devicename} Hotspot"
+    password: !secret wifi_password
+
+ota:
+mdns:
+logger:
+  level: INFO
+
+time:
+  - platform: sntp
+    id: sntp_time
+    servers:
+      - 10.1.1.1
+      - 0.pool.ntp.org
+      - 1.pool.ntp.org
+api:
+  reboot_timeout: 10min
+
+# image:
+#   - file: "boom.png"
+#     id: myimage
+#     resize: 100x100
+#     type: RGB24
+
+light:
+
+color:
+  - id: my_red
+    red: 100%
+    green: 20%
+    blue: 20%
+  - id: my_green
+    red: 0%
+    green: 100%
+    blue: 0%
+  - id: my_blue
+    red: 20%
+    green: 20%
+    blue: 100%
+  - id: my_yellow
+    red: 100%
+    green: 100%
+    blue: 0%
+  - id: black
+    red: 0%
+    green: 0%
+    blue: 0%
+  - id: white
+    red: 100%
+    green: 100%
+    blue: 100%
+
+font:
+  - file: "gfonts://Inconsolata"
+    id: LargeFont
+    size: 20
+  - file: "gfonts://Inconsolata"
+    id: SmallFont
+    size: 16
+
+graph:
+  - id: multi_voltage_graph
+    duration: 4h
+    x_grid: 15min
+    y_grid: 20
+    max_range: 100
+    min_range: 1
+    max_value: 200
+    width: 155
+    height: 75
+    traces:
+      - sensor: pv_power_0
+        line_type: SOLID
+        line_thickness: 2
+        color: my_red
+      - sensor: pv_power_1
+        line_type: SOLID
+        line_thickness: 2
+        color: my_blue
+
+
+spi:
+  clk_pin: 19
+  mosi_pin: 23
+  # miso_pin: 25
+
+globals:
+- id: old_time
+  type: int
+  initial_value: "1"
+
+display:
+  - platform: ili9xxx
+    model: ili9341
+    update_interval: 10s
+    auto_clear_enabled: false
+    dc_pin: 21
+    cs_pin: 22
+    reset_pin: 18
+    data_rate: 40000000
+    invert_display: false
+    dimensions: 320x240
+    rotation: 0
+    id: tft_ha
+    lambda: |- #cpp
+      auto time = id(sntp_time).now();
+      if (time.is_valid()) {
+        it.clear();
+        it.strftime(0, 0, id(SmallFont), "%Y-%m-%d %H:%M", time);
+
+        auto row = 1;
+        if (id(pv_power_0).has_state()){
+          auto graph = id(multi_voltage_graph);
+          //esphome::graph::GraphLegend legend = esphome::graph::GraphLegend();
+
+          //id(multi_voltage_graph).add_legend(&legend);
+          it.graph(1, 20, id(multi_voltage_graph), my_yellow);
+          //id(multi_voltage_graph).draw_legend(&it, 0, 0, Color(220,220,220));
+          it.printf(1, 102, id(SmallFont), Color(220,220,220), TextAlign::TOP_LEFT, "PV0 %4.0f W", id(pv_power_0).state);
+          it.printf(90, 102, id(SmallFont), Color(220,220,220), TextAlign::TOP_LEFT, "PV1 %4.0f W", id(pv_power_1).state);
+        }
+
+        if (!isnan(id(battery_0_level).state)) {
+          it.printf(165, 25, id(SmallFont), TextAlign::TOP_LEFT, "Charge");
+          esphome::display::hbar(&it, 164, 40, 75, 20, 100, id(SmallFont), 0, id(battery_0_level));
+          esphome::display::hbar(&it, 164, 60, 75, 20, 100, id(SmallFont), 120, id(battery_1_level));
+          esphome::display::hbar(&it, 164, 80, 75, 20, 100, id(SmallFont), 240, id(battery_2_level));
+          // it.filled_rectangle(165, 40, (id(battery_0_level).state/100)*75, 14, Color(255,15,10));
+          // it.printf(165, 41, id(SmallFont), id(black), "bms0 %4.0f %%", id(battery_0_level).state);
+          // it.printf(166, 40, id(SmallFont), id(white), "bms0 %4.0f %%", id(battery_0_level).state);
+          // it.filled_rectangle(165, 55, (id(battery_1_level).state/100)*75, 14, Color(6,230,6));
+          // it.printf(165, 56, id(SmallFont), id(black), "bms1 %4.0f %%", id(battery_1_level).state);
+          // it.printf(166, 55, id(SmallFont), id(white), "bms1 %4.0f %%", id(battery_1_level).state);
+          // it.filled_rectangle(165, 70, (id(battery_2_level).state/100)*75, 14, Color(5,5,245));
+          // it.printf(165, 71, id(SmallFont), id(black), "bms2 %4.0f %%", id(battery_2_level).state);
+          // it.printf(166, 70, id(SmallFont), id(white), "bms2 %4.0f %%", id(battery_2_level).state);
+        }
+        if (id(outside_temp).has_state()) {
+          float min_temp = 30; // Blue color
+          float max_temp = 90.0; // Red color
+          float current_temp = id(outside_temp).state;
+          if (current_temp < min_temp) current_temp = min_temp;
+          if (current_temp > max_temp) current_temp = max_temp;
+
+          float ratio = (current_temp - min_temp) / (max_temp - min_temp);
+          float hue = 220 + (ratio*140);
+          it.printf(0, 125, id(LargeFont), ESPHSVColor(hue, 5, 100).to_rgb(), TextAlign::TOP_LEFT, "%4.0f°F", id(outside_temp).state);
+          it.printf(2, 127, id(LargeFont), ESPHSVColor(hue, 100, 10).to_rgb(), TextAlign::TOP_LEFT, "%4.0f°F", id(outside_temp).state);
+          it.printf(1, 126, id(LargeFont), ESPHSVColor(hue, 100, 100).to_rgb(), TextAlign::TOP_LEFT, "%4.0f°F", id(outside_temp).state);
+        }
+        if (id(weather_condition).has_state()) {
+          it.printf(85, 126, id(LargeFont), TextAlign::TOP_LEFT, id(weather_condition).state.c_str());
+        }
+      }
+
+switch:
+  - platform: gpio
+    pin: 5
+    name: "Display Backlight"
+    id: backlight
+    inverted: true
+    restore_mode: ALWAYS_ON
+
+
+binary_sensor:
+  - platform: status
+    name: "Node Status"
+    id: system_status
+
+text_sensor:
+  - platform: homeassistant
+    id: weather_condition
+    entity_id: weather.kbbg_daynight
+    name: "Weather"
+    internal: true
+
+sensor:
+  - platform: wifi_signal
+    name: "WiFi Signal"
+    id: wifi_signal_db
+    update_interval: 60s
+    entity_category: "diagnostic"
+  - platform: homeassistant
+    name: "BMS0 SOC"
+    id: battery_0_level
+    entity_id: sensor.bms0_state_of_charge_2
+    unit_of_measurement: "%"
+    internal: true
+  - platform: homeassistant
+    name: "BMS1 SOC"
+    id: battery_1_level
+    entity_id: sensor.bms1_state_of_charge_2
+    unit_of_measurement: "%"
+    internal: true
+  - platform: homeassistant
+    name: "BMS2 SOC"
+    id: battery_2_level
+    entity_id: sensor.bms2_state_of_charge
+    unit_of_measurement: "%"
+    internal: true
+  - platform: homeassistant
+    id: outside_temp
+    entity_id: weather.kbbg_daynight
+    attribute: temperature
+    unit_of_measurement: "°F"
+    internal: true
+  - platform: homeassistant
+    id: pv_power_0
+    name: "PV0"
+    entity_id: sensor.victron0_pv_power_2
+    unit_of_measurement: "W"
+    internal: true
+  - platform: homeassistant
+    id: pv_power_1
+    entity_id: sensor.victron1_pv_power
+    unit_of_measurement: "W"
+    internal: true
+    name: "PV1"
