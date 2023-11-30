@@ -1,0 +1,41 @@
+
+image:
+  - file: mdi:wifi-strength-alert-outline
+    id: wifi_disconnected
+    resize: 28x28
+  - file: mdi:wifi
+    id: wifi_connected
+    resize: 28x28
+  - file: mdi:weather-night
+    id: clearnight
+    resize: 64x64
+  - file: mdi:weather-sunny
+    id: sunny
+    resize: 64x64
+  - file: mdi:weather-cloudy
+    id: cloudy
+    resize: 64x64
+  - file: mdi:weather-partly-cloudy
+    id: partlycloudy
+    resize: 64x64
+  - file: mdi:weather-night-partly-cloudy
+    id: partlycloudynight
+    resize: 64x64
+  - file: mdi:weather-hail
+    id: hail
+    resize: 64x64
+  - file: mdi:weather-rainy
+    id: rain
+    resize: 64x64
+  - file: mdi:weather-snowy
+    id: snow
+    resize: 64x64
+  - file: mdi:weather-fog
+    id: fog
+    resize: 64x64
+  - file: mdi:weather-windy
+    id: wind
+    resize: 64x64
+  - file: mdi:weather-lightning
+    id: lightning
+    resize: 64x64

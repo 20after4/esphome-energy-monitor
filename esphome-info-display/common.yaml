@@ -1,0 +1,22 @@
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  ap:
+    ssid: "${devicename} Hotspot"
+    password: !secret wifi_password
+
+ota:
+mdns:
+logger:
+  level: INFO
+
+time:
+  - platform: sntp
+    id: sntp_time
+    servers:
+      - 10.1.1.1
+      - 0.pool.ntp.org
+      - 1.pool.ntp.org
+api:
+  reboot_timeout: 10min

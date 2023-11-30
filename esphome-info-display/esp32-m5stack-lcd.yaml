@@ -1,0 +1,247 @@
+esphome:
+  name: esp32-m5stack-lcd
+  #libraries:
+    #- "light"
+  includes:
+    - lcd.h
+    #- src/esphome/components/light/esp_hsv_color.h
+  platformio_options:
+    board_build.flash_mode: dio
+    board_build.f_cpu: 240000000L
+    board_build.f_flash: 40000000L
+    board_build.flash_size: 4MB
+    board_upload.flash_size: 4MB
+esp32:
+  board: m5stack-grey
+  framework:
+    type: esp-idf
+preferences:
+  flash_write_interval: 10min
+psram:
+  speed: 40Mhz
+
+<<: !include common.yaml
+
+
+light:
+
+color:
+  - id: my_red
+    red: 100%
+    green: 20%
+    blue: 20%
+  - id: my_green
+    red: 0%
+    green: 100%
+    blue: 0%
+  - id: my_blue
+    red: 20%
+    green: 20%
+    blue: 100%
+  - id: my_yellow
+    red: 100%
+    green: 100%
+    blue: 0%
+  - id: black
+    red: 0%
+    green: 0%
+    blue: 0%
+  - id: white
+    red: 100%
+    green: 100%
+    blue: 100%
+
+font:
+  - file: "gfonts://Share Tech Mono"
+    id: LargeFont
+    size: 28
+  - file: "gfonts://Inconsolata"
+    id: SmallFont
+    size: 16
+
+
+
+graph:
+  - id: multi_voltage_graph
+    duration: 90min
+    x_grid: 15min
+    y_grid: 8
+    width: 314
+    height: 120
+    traces:
+      - sensor: pv_power_0
+        line_type: SOLID
+        line_thickness: 2
+        color: my_red
+      - sensor: pv_power_1
+        line_type: SOLID
+        line_thickness: 2
+        color: my_blue
+      - sensor: pv_power_2
+        line_type: SOLID
+        line_thickness: 2
+        color: my_green
+
+
+spi:
+  clk_pin: 18
+  mosi_pin: 23
+  # miso_pin: 25
+
+i2c:
+  sda: 21
+  scl: 22
+
+<<: !include display.yaml
+
+switch:
+  - platform: gpio
+    pin: 32
+    name: "Display Backlight"
+    id: backlight
+    inverted: false
+    restore_mode: ALWAYS_ON
+
+binary_sensor:
+  - platform: status
+    name: "Node Status"
+    id: system_status
+  - platform: gpio
+    pin: 39
+    internal: true
+    id: button_a
+    on_press:
+      - display.page.show_previous: tft_ha
+      - component.update: tft_ha
+  - platform: gpio
+    pin: 38
+    name: "Button B"
+    id: button_b
+    internal: true
+    on_press:
+      - switch.toggle: backlight
+  - platform: gpio
+    pin: 37
+    name: "Button C"
+    id: button_c
+    internal: true
+    on_press:
+      - display.page.show_next: tft_ha
+      - component.update: tft_ha
+
+text_sensor:
+  - platform: homeassistant
+    id: weather_condition
+    entity_id: weather.kbbg_daynight
+    name: "Weather"
+    internal: true
+
+sensor:
+  - platform: wifi_signal
+    name: "WiFi Signal"
+    id: wifi_signal_db
+    update_interval: 60s
+    entity_category: "diagnostic"
+  - platform: htu21d
+    update_interval: 60s
+    temperature:
+      id: temperature
+      name: "Temperature (Si7021)"
+      filters:
+      - lambda: return x * (9.0/5.0) + 32.0;
+      unit_of_measurement: "°F"
+    humidity:
+      id: humidity
+      name: "Humidity (bme280)"
+
+  - platform: bme280
+    address: 0x76
+    update_interval: 60s
+    temperature:
+      id: bme280_temperature
+      name: "Temperature"
+      oversampling: 16x
+      filters:
+        - lambda: return x * (9.0/5.0) + 32.0;
+      unit_of_measurement: "°F"
+    pressure:
+      id: atmospheric_pressure
+      name: "Pressure"
+    humidity:
+      id: humidity2
+      name: "Humidity"
+
+  - platform: absolute_humidity
+    name: "Absolute Humidity"
+    temperature: bme280_temperature
+    humidity: humidity2
+  - platform: template
+    name: "Dew Point"
+    lambda: |-
+      return (243.5*(log(id(humidity2).raw_state/100)+((17.67*id(bme280_temperature).raw_state)/
+      (243.5+id(bme280_temperature).raw_state)))/(17.67-log(id(humidity2).raw_state/100)-
+      ((17.67*id(bme280_temperature).raw_state)/(243.5+id(bme280_temperature).raw_state))));
+    unit_of_measurement: °C
+    icon: 'mdi:thermometer-alert'
+
+  - platform: homeassistant
+    name: "BMS0 SOC"
+    id: battery_0_level
+    entity_id: sensor.bms0_state_of_charge_2
+    unit_of_measurement: "%"
+    internal: true
+
+  - platform: homeassistant
+    name: "BMS1 SOC"
+    id: battery_1_level
+    entity_id: sensor.bms1_state_of_charge_2
+    unit_of_measurement: "%"
+    internal: true
+  - platform: homeassistant
+    name: "BMS2 SOC"
+    id: battery_2_level
+    entity_id: sensor.bms2_state_of_charge
+    unit_of_measurement: "%"
+    internal: true
+  - platform: homeassistant
+    id: outside_temp
+    entity_id: weather.kbbg_daynight
+    attribute: temperature
+    unit_of_measurement: "°F"
+    internal: true
+  - platform: homeassistant
+    id: pv_power_0
+    name: "PV0"
+    entity_id: sensor.victron0_pv_power_2
+    unit_of_measurement: "W"
+    internal: true
+  - platform: homeassistant
+    id: pv_power_1
+    entity_id: sensor.victron1_pv_power
+    unit_of_measurement: "W"
+    internal: true
+    name: "PV1"
+  - platform: homeassistant
+    id: pv_power_2
+    entity_id: sensor.victron3_pv_power
+    unit_of_measurement: "W"
+    internal: true
+    name: "PV3"
+  - platform: homeassistant
+    id: pv_yield_0
+    entity_id: sensor.victron0_yield_today
+    unit_of_measurement: "kWh"
+    internal: true
+    name: "Yield0"
+  - platform: homeassistant
+    id: pv_yield_1
+    entity_id: sensor.victron1_yield_today
+    unit_of_measurement: "kWh"
+    internal: true
+    name: "Yield1"
+  - platform: homeassistant
+    id: pv_yield_2
+    entity_id: sensor.victron3_yield_today
+    unit_of_measurement: "kWh"
+    internal: true
+    name: "Yield2"
