@@ -1,0 +1,21 @@
+
+ota:
+
+logger:
+  level: error
+
+time:
+  - platform: sntp
+    id: sntp_time
+    servers:
+      - 10.1.1.1
+      - 0.pool.ntp.org
+      - 1.pool.ntp.org
+
+api:
+  reboot_timeout: 10min
+
+mdns:
+
+preferences:
+  flash_write_interval: 30min

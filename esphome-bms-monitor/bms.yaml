@@ -1,0 +1,119 @@
+ble_client:
+  - mac_address: ${bms_mac_address}
+    id: ble_client_${bms_id}
+
+jbd_bms_ble:
+  - id: ${bms_id}
+    ble_client_id: ble_client_${bms_id}
+    update_interval: 10s
+
+binary_sensor:
+  - platform: jbd_bms_ble
+    jbd_bms_ble_id: ${bms_id}
+    balancing:
+      name: "${bms_id} balancing"
+      device_class: running
+    online_status:
+      name: "${bms_id} online status"
+      device_class: connectivity
+
+sensor:
+  - platform: jbd_bms_ble
+    jbd_bms_ble_id: ${bms_id}
+    charging_power:
+      id: ${bms_id}_charging_power
+      name: "${bms_id} charging power"
+      device_class: power
+      unit_of_measurement: W
+    discharging_power:
+      id: ${bms_id}_discharging_power
+      name: "${bms_id} discharging power"
+      device_class: power
+      unit_of_measurement: W
+    state_of_charge:
+      name: "${bms_id} SOC"
+      device_class: battery
+    capacity_remaining:
+      id: ${bms_id}_capacity_remaining
+      name: "${bms_id} capacity remaining"
+      device_class: energy_storage
+      unit_of_measurement: Ah
+    total_voltage:
+      name: "${bms_id} total voltage"
+      id: ${bms_id}_total_voltage
+      device_class: voltage
+    average_cell_voltage:
+      name: "${bms_id} average cell voltage"
+      id: ${bms_id}_average_cell_voltage
+      device_class: voltage
+    delta_cell_voltage:
+      name: "${bms_id} delta cell voltage"
+    temperature_1:
+      name: "${bms_id} temperature 1"
+      device_class: temperature
+    temperature_2:
+      name: "${bms_id} temperature 2"
+      device_class: temperature
+    temperature_3:
+      name: "${bms_id} temperature 3"
+      device_class: temperature
+
+  - platform: template
+    name: "total energy remaining"
+    id: ${bms_id}_total_energy_remaining
+    unit_of_measurement: 'Wh'
+    accuracy_decimals: 0
+    device_class: energy_storage
+    icon: "mdi:home-battery-outline"
+    lambda: |-
+      if (id(${bms_id}_capacity_remaining).state) {
+        return id(${bms_id}_capacity_remaining).state * id(${bms_id}_total_voltage).state;
+      } else {
+        return {};
+      }
+    update_interval: 60s
+
+  - platform: total_daily_energy
+    name: "${bms_id} energy stored"
+    power_id: ${bms_id}_charging_power
+    unit_of_measurement: 'kWh'
+    state_class: total_increasing
+    device_class: energy
+    accuracy_decimals: 4
+    filters:
+      - multiply: 0.001
+
+  - platform: total_daily_energy
+    name: "${bms_id} energy consumed"
+    power_id: ${bms_id}_discharging_power
+    unit_of_measurement: 'kWh'
+    state_class: total_increasing
+    device_class: energy
+    accuracy_decimals: 4
+    filters:
+      - multiply: 0.001
+
+
+text_sensor:
+  - platform: jbd_bms_ble
+    jbd_bms_ble_id: ${bms_id}
+    errors:
+      name: "${bms_id} errors"
+      entity_category: diagnostic
+    operation_status:
+      name: "${bms_id} operation status"
+      entity_category: diagnostic
+
+switch:
+  - platform: ble_client
+    ble_client_id: ble_client_${bms_id}
+    name: "${bms_id} enable bluetooth connection"
+    icon: "mdi:bluetooth"
+  - platform: jbd_bms_ble
+    jbd_bms_ble_id: ${bms_id}
+    charging:
+      name: "${bms_id} enable charging"
+      icon: "mdi:battery-charging"
+    discharging:
+      name: "${bms_id} enable discharging"
+      icon: "mdi:battery"

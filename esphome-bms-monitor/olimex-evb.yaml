@@ -1,0 +1,64 @@
+substitutions:
+  device_name: "bms-node"
+
+esphome:
+  name: ${device_name}
+  name_add_mac_suffix: true
+
+esp32:
+  board: esp32-evb
+  framework:
+    type: esp-idf
+
+<<: !include common.yaml
+
+
+external_components:
+  - source: github://syssi/esphome-jbd-bms@main
+    refresh: 0s
+
+ethernet:
+  type: LAN8720
+  mdc_pin: GPIO23
+  mdio_pin: GPIO18
+  clk_mode: GPIO0_IN
+  phy_addr: 0
+
+esp32_ble_tracker:
+  scan_parameters:
+    interval: 1100ms
+    window: 1100ms
+    active: true
+
+bluetooth_proxy:
+  active: true
+
+uart:
+  - id: uart_1
+    baud_rate: 2400
+    tx_pin: 4
+    rx_pin: 36
+
+
+packages:
+  bms3: !include
+    file: bms.yaml
+    vars:
+      bms_id: bms3
+      bms_mac_address: "A4:C1:37:22:97:3B"
+  inverter1: !include
+    file: pipsolar.yaml
+    vars:
+      inverter_id: inverter0
+      inverter_name: "Pipsolar Inverter"
+      uart_id: uart_1
+
+i2c:
+  sda: 13
+  scl: 16
+  scan: true
+
+sensor:
+  - platform: mcp9808
+    name: "Outside Temperature"
+    update_interval: 60s

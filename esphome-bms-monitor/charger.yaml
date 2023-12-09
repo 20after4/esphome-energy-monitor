@@ -1,0 +1,68 @@
+victron_ble:
+  - id: ${victron_id}
+    mac_address: "${mac_address}"
+    bindkey: "${bindkey}"
+
+sensor:
+  - platform: victron_ble
+    victron_ble_id: ${victron_id}
+    name: "${victron_id} Battery Voltage"
+    type: BATTERY_VOLTAGE
+    unit_of_measurement: V
+    device_class: voltage
+
+  - platform: victron_ble
+    victron_ble_id: ${victron_id}
+    name: "${victron_id} Battery Current"
+    type: BATTERY_CURRENT
+    unit_of_measurement: A
+    device_class: current
+
+  - platform: victron_ble
+    victron_ble_id: ${victron_id}
+    name: "${victron_id} Load Current"
+    type: LOAD_CURRENT
+    unit_of_measurement: A
+    device_class: current
+
+  - platform: victron_ble
+    victron_ble_id: ${victron_id}
+    name: "${victron_id} Yield Today"
+    type: YIELD_TODAY
+    unit_of_measurement: kWh
+    state_class: total_increasing
+    device_class: energy
+
+  - platform: victron_ble
+    victron_ble_id: ${victron_id}
+    name: "${victron_id} PV Power"
+    type: PV_POWER
+    device_class: power
+    unit_of_measurement: W
+
+
+binary_sensor:
+  - platform: victron_ble
+    victron_ble_id: ${victron_id}
+    name: "${victron_id} MPPT has Fault"
+    type: DEVICE_STATE_FAULT
+    device_class: problem
+
+  - platform: victron_ble
+    victron_ble_id: ${victron_id}
+    name: "${victron_id} MPPT has Error"
+    type: CHARGER_ERROR
+    device_class: problem
+
+
+text_sensor:
+  - platform: victron_ble
+    victron_ble_id: ${victron_id}
+    name: "${victron_id} charging mode"
+    type: DEVICE_STATE
+
+  - platform: victron_ble
+    victron_ble_id: ${victron_id}
+    name: "${victron_id} error"
+    type: CHARGER_ERROR
+    entity_category: diagnostic
