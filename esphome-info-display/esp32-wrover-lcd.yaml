@@ -3,9 +3,8 @@ esphome:
   name: esp32-wrover-test-m5stack
   #libraries:
     #- "light"
-  includes:
-    - lcd.h
-    #- src/esphome/components/light/esp_hsv_color.h
+  #includes:
+  #  - widget.h
 esp32:
   board: m5stack-core-esp32
 

@@ -1,3 +1,61 @@
+color:
+  - id: my_red
+    red: 100%
+    green: 20%
+    blue: 20%
+  - id: my_green
+    red: 0%
+    green: 100%
+    blue: 0%
+  - id: my_blue
+    red: 20%
+    green: 20%
+    blue: 100%
+  - id: my_yellow
+    red: 100%
+    green: 100%
+    blue: 0%
+  - id: black
+    red: 0%
+    green: 0%
+    blue: 0%
+  - id: white
+    red: 100%
+    green: 100%
+    blue: 100%
+
+font:
+  - file: "gfonts://Share Tech Mono"
+    id: LargeFont
+    size: 28
+  - file: "gfonts://Inconsolata"
+    id: SmallFont
+    size: 16
+
+
+
+graph:
+  - id: multi_voltage_graph
+    duration: 90min
+    x_grid: 15min
+    y_grid: 8
+    width: 314
+    height: 120
+    traces:
+      - sensor: pv_power_0
+        line_type: SOLID
+        line_thickness: 2
+        color: my_red
+      - sensor: pv_power_1
+        line_type: SOLID
+        line_thickness: 2
+        color: my_blue
+      - sensor: pv_power_2
+        line_type: SOLID
+        line_thickness: 2
+        color: my_green
+
+
 <<: !include weather-icons.yaml
 
 display:
@@ -26,11 +84,7 @@ display:
         lambda: |- #cpp
           auto time = id(sntp_time).now();
           if (time.is_valid()) {
-
-            it.strftime(0, 0, id(LargeFont),TextAlign::TOP_LEFT, "%Y-%m-%d", time);
-            it.strftime(290, 0, id(LargeFont),TextAlign::TOP_RIGHT, "%H:%M", time);
-
-
+            widget::TimeWidget(&it);
 
             auto graph = id(multi_voltage_graph);
             it.graph(3, 32, id(multi_voltage_graph), my_red);
@@ -45,72 +99,25 @@ display:
             }
 
             if (!isnan(id(battery_0_level).state)) {
-              esphome::display::hbar(&it, 170, 154, 75, 20, 100, id(SmallFont), 0, id(battery_0_level));
-              esphome::display::hbar(&it, 170, 174, 75, 20, 100, id(SmallFont), 120, id(battery_1_level));
-              esphome::display::hbar(&it, 170, 194, 75, 20, 100, id(SmallFont), 240, id(battery_2_level));
+              widget::hbar(&it, 170, 154, 75, 20, 100, id(SmallFont), 0, id(battery_0_level));
+              widget::hbar(&it, 170, 174, 75, 20, 100, id(SmallFont), 90, id(battery_1_level));
+              widget::hbar(&it, 170, 194, 75, 20, 100, id(SmallFont), 180, id(battery_2_level));
+              widget::hbar(&it, 170, 214, 75, 20, 100, id(SmallFont), 270, id(battery_3_level));
             }
           }
       - id: weather
         lambda: |- #cpp
-          static std::map<std::string, BaseImage*> weather_state {
-              { "sunny", id(sunny) },
-              { "clear-night", id(clearnight) },
-              { "cloudy", id(cloudy) },
-              { "partlycloudy", id(partlycloudy) },
-              { "partly-cloudy-night", id(partlycloudynight) },
-              { "rainy", id(rain) },
-              { "pouring", id(rain) },
-              { "hail", id(hail) },
-              { "snowy", id(snow) },
-              { "windy", id(wind) },
-              { "fog", id(fog) },
-              { "lightning", id(lightning) }
-          };
-          if (id(outside_temp).has_state()) {
+          widget::TimeWidget(&it);
+          auto w = new widget::WeatherWidget(&it);
+          w->draw(weather_condition, outside_temp, humidity, temperature);
 
-            float min_temp = 30; // Blue color
-            float max_temp = 90.0; // Red color
-            float current_temp = id(outside_temp).state;
-            if (current_temp < min_temp) current_temp = min_temp;
-            if (current_temp > max_temp) current_temp = max_temp;
-
-            float ratio = (current_temp - min_temp) / (max_temp - min_temp);
-            float hue = 220 - (ratio*140);
-            auto shadow_color = ESPHSVColor(hue, 150, 50).to_rgb();
-            auto highlight_color = ESPHSVColor(hue, 200, 250).to_rgb();
-            auto textcolor = ESPHSVColor(hue, 250, 100).to_rgb();
-            it.printf(10, 66, id(LargeFont), Color(200, 200, 200), TextAlign::TOP_LEFT, "Outside");
-            it.printf(200, 65, id(LargeFont), highlight_color, TextAlign::TOP_RIGHT, "%4.0f°F", id(outside_temp).state);
-            it.printf(202, 67, id(LargeFont), shadow_color, TextAlign::TOP_RIGHT, "%4.0f°F", id(outside_temp).state);
-            it.printf(201, 66, id(LargeFont), textcolor, TextAlign::TOP_RIGHT, "%4.0f°F", id(outside_temp).state);
-          }
-          it.line(10, 105, 310, 105, Color(200, 200, 200));
-          it.printf(10, 110, id(LargeFont), Color(200, 200, 200), TextAlign::TOP_LEFT, "Inside");
-          it.printf(210, 110, id(LargeFont), Color(200, 200, 200), TextAlign::TOP_RIGHT, "%4.1f°F", id(temperature).state);
-          it.printf(312, 110, id(SmallFont), Color(200, 200, 200), TextAlign::TOP_RIGHT, "%1.1f%%", id(humidity).state);
-
-          show_sensor(&it, 210, 140, id(LargeFont), Color(200, 200, 200), TextAlign::TOP_RIGHT, id(bme280_temperature), false);
-          show_sensor(&it, 312, 140, id(SmallFont), Color(200, 200, 200), TextAlign::TOP_RIGHT, id(humidity2), false);
-
-
-          if (id(weather_condition).has_state()) {
-            auto weather_icon = weather_state.find(id(weather_condition).state);
-            if (weather_icon != weather_state.end()) {
-              it.image(310, 40, weather_icon->second,  ImageAlign::TOP_RIGHT);
-
-            } else {
-              it.printf(310, 45, id(LargeFont), TextAlign::TOP_RIGHT, id(weather_condition).state.c_str());
-              it.printf(310, 47, id(LargeFont), TextAlign::TOP_RIGHT, id(weather_condition).state.c_str());
-              it.printf(310, 46, id(LargeFont), TextAlign::TOP_RIGHT, id(weather_condition).state.c_str());
-            }
-          }
-          auto time = id(sntp_time).now();
-          if (time.is_valid()) {
-            it.strftime(0, 0, id(LargeFont),TextAlign::TOP_LEFT, "%Y-%m-%d", time);
-            it.strftime(312, 0, id(LargeFont),TextAlign::TOP_RIGHT, "%H:%M", time);
-            auto lineColor = Color(250, 250, 0);
-            it.horizontal_line(0, 31, 320, lineColor.fade_to_black(200));
-            it.horizontal_line(0, 32, 318, lineColor.fade_to_black(150));
-            it.horizontal_line(0, 33, 316, lineColor.fade_to_black(100));
-            it.horizontal_line(0, 34, 314, lineColor);
-          }
+          // auto time = id(sntp_time).now();
+          // if (time.is_valid()) {
+          //   it.strftime(0, 0, id(LargeFont),TextAlign::TOP_LEFT, "%Y-%m-%d", time);
+          //   it.strftime(312, 0, id(LargeFont),TextAlign::TOP_RIGHT, "%H:%M", time);
+          //   auto lineColor = Color(250, 250, 0);
+          //   it.horizontal_line(0, 31, 320, lineColor.fade_to_black(200));
+          //   it.horizontal_line(0, 32, 318, lineColor.fade_to_black(150));
+          //   it.horizontal_line(0, 33, 316, lineColor.fade_to_black(100));
+          //   it.horizontal_line(0, 34, 314, lineColor);
+          // }

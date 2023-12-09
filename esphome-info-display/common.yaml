@@ -9,7 +9,7 @@ wifi:
 ota:
 mdns:
 logger:
-  level: INFO
+  level: ERROR
 
 time:
   - platform: sntp
@@ -20,3 +20,6 @@ time:
       - 1.pool.ntp.org
 api:
   reboot_timeout: 10min
+
+preferences:
+  flash_write_interval: 60min

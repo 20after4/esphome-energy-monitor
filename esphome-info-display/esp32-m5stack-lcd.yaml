@@ -1,9 +1,12 @@
+substitutions:
+  devicename: "esphome-display"
+
 esphome:
   name: esp32-m5stack-lcd
-  #libraries:
-    #- "light"
+  # libraries:
+  #   - "display"
   includes:
-    - lcd.h
+    - widget.h
     #- src/esphome/components/light/esp_hsv_color.h
   platformio_options:
     board_build.flash_mode: dio
@@ -11,12 +14,12 @@ esphome:
     board_build.f_flash: 40000000L
     board_build.flash_size: 4MB
     board_upload.flash_size: 4MB
+
 esp32:
   board: m5stack-grey
   framework:
     type: esp-idf
-preferences:
-  flash_write_interval: 10min
+
 psram:
   speed: 40Mhz
 
@@ -25,62 +28,6 @@ psram:
 
 light:
 
-color:
-  - id: my_red
-    red: 100%
-    green: 20%
-    blue: 20%
-  - id: my_green
-    red: 0%
-    green: 100%
-    blue: 0%
-  - id: my_blue
-    red: 20%
-    green: 20%
-    blue: 100%
-  - id: my_yellow
-    red: 100%
-    green: 100%
-    blue: 0%
-  - id: black
-    red: 0%
-    green: 0%
-    blue: 0%
-  - id: white
-    red: 100%
-    green: 100%
-    blue: 100%
-
-font:
-  - file: "gfonts://Share Tech Mono"
-    id: LargeFont
-    size: 28
-  - file: "gfonts://Inconsolata"
-    id: SmallFont
-    size: 16
-
-
-
-graph:
-  - id: multi_voltage_graph
-    duration: 90min
-    x_grid: 15min
-    y_grid: 8
-    width: 314
-    height: 120
-    traces:
-      - sensor: pv_power_0
-        line_type: SOLID
-        line_thickness: 2
-        color: my_red
-      - sensor: pv_power_1
-        line_type: SOLID
-        line_thickness: 2
-        color: my_blue
-      - sensor: pv_power_2
-        line_type: SOLID
-        line_thickness: 2
-        color: my_green
 
 
 spi:
@@ -142,39 +89,46 @@ sensor:
     id: wifi_signal_db
     update_interval: 60s
     entity_category: "diagnostic"
+
+
   - platform: htu21d
     update_interval: 60s
     temperature:
       id: temperature
-      name: "Temperature (Si7021)"
+      name: "Temperature"
       filters:
-      - lambda: return x * (9.0/5.0) + 32.0;
+        - lambda: return x * (9.0/5.0) + 32.0;
       unit_of_measurement: "°F"
     humidity:
       id: humidity
-      name: "Humidity (bme280)"
+      name: "Humidity"
 
   - platform: bme280
     address: 0x76
     update_interval: 60s
     temperature:
       id: bme280_temperature
-      name: "Temperature"
+      name: "Temperature (F)"
       oversampling: 16x
       filters:
         - lambda: return x * (9.0/5.0) + 32.0;
       unit_of_measurement: "°F"
+      device_class: temperature
     pressure:
       id: atmospheric_pressure
-      name: "Pressure"
+      name: "Atmospheric Pressure"
+      device_class: atmospheric_pressure
     humidity:
       id: humidity2
-      name: "Humidity"
+      name: "Humidity (bme280)"
+      device_class: humidity
 
   - platform: absolute_humidity
     name: "Absolute Humidity"
     temperature: bme280_temperature
     humidity: humidity2
+    device_class: moisture
+    icon: "mdi:water-percent"
   - platform: template
     name: "Dew Point"
     lambda: |-
@@ -182,25 +136,32 @@ sensor:
       (243.5+id(bme280_temperature).raw_state)))/(17.67-log(id(humidity2).raw_state/100)-
       ((17.67*id(bme280_temperature).raw_state)/(243.5+id(bme280_temperature).raw_state))));
     unit_of_measurement: °C
-    icon: 'mdi:thermometer-alert'
+    device_class: temperature
+    icon: 'mdi:thermometer-water'
 
   - platform: homeassistant
     name: "BMS0 SOC"
     id: battery_0_level
-    entity_id: sensor.bms0_state_of_charge_2
+    entity_id: sensor.bms0_soc_2
     unit_of_measurement: "%"
     internal: true
 
   - platform: homeassistant
     name: "BMS1 SOC"
     id: battery_1_level
-    entity_id: sensor.bms1_state_of_charge_2
+    entity_id: sensor.bms1_soc_2
     unit_of_measurement: "%"
     internal: true
   - platform: homeassistant
     name: "BMS2 SOC"
     id: battery_2_level
-    entity_id: sensor.bms2_state_of_charge
+    entity_id: sensor.bms2_soc_2
+    unit_of_measurement: "%"
+    internal: true
+  - platform: homeassistant
+    name: "BMS3 SOC"
+    id: battery_3_level
+    entity_id: sensor.bms3_soc_2
     unit_of_measurement: "%"
     internal: true
   - platform: homeassistant
@@ -212,36 +173,36 @@ sensor:
   - platform: homeassistant
     id: pv_power_0
     name: "PV0"
-    entity_id: sensor.victron0_pv_power_2
+    entity_id: sensor.charger0_pv_power
     unit_of_measurement: "W"
     internal: true
   - platform: homeassistant
     id: pv_power_1
-    entity_id: sensor.victron1_pv_power
+    entity_id: sensor.charger1_pv_power
     unit_of_measurement: "W"
     internal: true
     name: "PV1"
   - platform: homeassistant
     id: pv_power_2
-    entity_id: sensor.victron3_pv_power
+    entity_id: sensor.charger2_pv_power
     unit_of_measurement: "W"
     internal: true
     name: "PV3"
   - platform: homeassistant
     id: pv_yield_0
-    entity_id: sensor.victron0_yield_today
+    entity_id: sensor.charger0_yield_today
     unit_of_measurement: "kWh"
     internal: true
     name: "Yield0"
   - platform: homeassistant
     id: pv_yield_1
-    entity_id: sensor.victron1_yield_today
+    entity_id: sensor.charger1_yield_today
     unit_of_measurement: "kWh"
     internal: true
     name: "Yield1"
   - platform: homeassistant
     id: pv_yield_2
-    entity_id: sensor.victron3_yield_today
+    entity_id: sensor.charger2_yield_today
     unit_of_measurement: "kWh"
     internal: true
     name: "Yield2"
