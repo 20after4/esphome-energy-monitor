@@ -3,7 +3,7 @@
 # https://github.com/syssi/esphome-pipsolar/blob/main/esp32-example.yaml
 
 pipsolar:
-  uart_id: ${uart_1}
+  uart_id: ${uart_id}
   id: ${inverter_id}
 
 sensor:

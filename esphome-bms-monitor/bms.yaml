@@ -5,7 +5,7 @@ ble_client:
 jbd_bms_ble:
   - id: ${bms_id}
     ble_client_id: ble_client_${bms_id}
-    update_interval: 10s
+    update_interval: 15s
 
 binary_sensor:
   - platform: jbd_bms_ble
@@ -25,6 +25,8 @@ sensor:
       name: "${bms_id} charging power"
       device_class: power
       unit_of_measurement: W
+      filters:
+        - multiply: -1
     discharging_power:
       id: ${bms_id}_discharging_power
       name: "${bms_id} discharging power"
@@ -71,7 +73,7 @@ sensor:
       } else {
         return {};
       }
-    update_interval: 60s
+    update_interval: 120s
 
   - platform: total_daily_energy
     name: "${bms_id} energy stored"

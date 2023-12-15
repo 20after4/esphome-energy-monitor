@@ -6,6 +6,7 @@ victron_ble:
 sensor:
   - platform: victron_ble
     victron_ble_id: ${victron_id}
+    id: ${victron_id}_battery_voltage
     name: "${victron_id} Battery Voltage"
     type: BATTERY_VOLTAGE
     unit_of_measurement: V
@@ -20,10 +21,29 @@ sensor:
 
   - platform: victron_ble
     victron_ble_id: ${victron_id}
+    id: ${victron_id}_load_current
     name: "${victron_id} Load Current"
     type: LOAD_CURRENT
     unit_of_measurement: A
+    accuracy_decimals: 2
     device_class: current
+
+  - platform: template
+    name: "${victron_id} load output power"
+    id: ${victron_id}_load_power
+    unit_of_measurement: W
+    device_class: power
+    accuracy_decimals: 2
+    lambda: |-
+      return -id(${victron_id}_battery_voltage).state * id(${victron_id}_load_current).state;
+
+  - platform: total_daily_energy
+    name: "${victron_id} load consumed"
+    power_id: ${victron_id}_load_power
+    unit_of_measurement: 'Wh'
+    state_class: total_increasing
+    device_class: energy
+    accuracy_decimals: 2
 
   - platform: victron_ble
     victron_ble_id: ${victron_id}
@@ -39,7 +59,6 @@ sensor:
     type: PV_POWER
     device_class: power
     unit_of_measurement: W
-
 
 binary_sensor:
   - platform: victron_ble

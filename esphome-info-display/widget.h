@@ -18,23 +18,27 @@ using namespace esphome::light;
 using ::LargeFont;
 using ::SmallFont;
 
-Color COLOR_SHADOW = Color(10, 10, 10, 10);
-
+const Color COLOR_SHADOW = Color(170, 170, 170);
+const Color COLOR_HIGHLIGHT = Color(15, 15, 15);
 // BaseFont *LargeFont = nullptr;
 // BaseFont *SmallFont = nullptr;
 
 void hbar(Display *it, int x, int y, int width, int height, int max, BaseFont *font, int hue, sensor::Sensor *sensor)
 {
+    const int offset = width / 2;
+    width = width - offset;
     auto value = sensor->get_state();
+    if (isnan(value)) return;
     int w = (width * value) / max;
     if (w < 0) w = 0;
     if (w > width) w = width;
 
     unsigned int v = static_cast<unsigned int>(value);
-    it->rectangle(x, y, w, height, ESPHSVColor(hue, 200, 50).to_rgb());
-    it->filled_rectangle(x+1, y+1, w-2, height-2, ESPHSVColor(hue, 240, 210).to_rgb());
-    it->printf(x+2, y+4, font, COLOR_SHADOW, "%-11s %4u%s", sensor->get_name().c_str(), v, sensor->get_unit_of_measurement().c_str());
-    it->printf(x+1, y+3, font, COLOR_ON, "%-11s %4u%s", sensor->get_name().c_str(), v, sensor->get_unit_of_measurement().c_str());
+    it->rectangle(x+offset, y, w, height, ESPHSVColor(hue, 220, 30).to_rgb());
+    it->filled_rectangle(x+offset+1, y+1, w-2, height-2, ESPHSVColor(hue, 255, 200).to_rgb());
+    it->printf(x, y+1, font, COLOR_SHADOW, "%-11s %4u%s", sensor->get_name().c_str(), v, sensor->get_unit_of_measurement().c_str());
+    it->printf(x-1, y, font, COLOR_HIGHLIGHT, "%-11s %4u%s", sensor->get_name().c_str(), v, sensor->get_unit_of_measurement().c_str());
+    it->printf(x, y, font, COLOR_ON, "%-11s %4u%s", sensor->get_name().c_str(), v, sensor->get_unit_of_measurement().c_str());
 }
 
 void statusbar(Display *it, int y, int width, BaseFont *font, ESPTime time) {
@@ -139,11 +143,12 @@ void TimeWidget(display::Display *buff)
 
 }
 
+
 class WeatherWidget {
 public:
   WeatherWidget(display::Display *buff): buff_(buff) {};
 
-  void draw(text_sensor::TextSensor *weather_condition, sensor::Sensor *outside_temp, sensor::Sensor *humidity, sensor::Sensor *temperature) {
+  void draw(text_sensor::TextSensor *weather_condition, sensor::Sensor *nws_temp, sensor::Sensor *outside_temp, sensor::Sensor *humidity, sensor::Sensor *temperature, sensor::Sensor *temperature2) {
       static std::map<std::string, BaseImage*> weather_state {
           { "sunny", ::sunny },
           { "clear-night", ::clearnight },
@@ -158,15 +163,23 @@ public:
           { "fog", ::fog },
           { "lightning", ::lightning }
       };
-
       auto time = id(sntp_time).now();
-
+      auto temp_label = "Outside";
+      auto outside_t = id(outside_temp);
       Display *buff = this->buff_;
-      if (id(outside_temp).has_state()) {
+
+      if (isnan(outside_temp->get_state())) {
+        outside_t = id(nws_temp);
+        temp_label = "Forecast";
+
+      }
+      if (!outside_t.has_state()) {
+        return;
+      }
 
       float min_temp = 30; // Blue color
       float max_temp = 90.0; // Red color
-      float current_temp = id(outside_temp).state;
+      float current_temp = id(outside_t).get_state();
       if (current_temp < min_temp) current_temp = min_temp;
       if (current_temp > max_temp) current_temp = max_temp;
 
@@ -175,16 +188,18 @@ public:
       auto shadow_color = ESPHSVColor(hue, 150, 50).to_rgb();
       auto highlight_color = ESPHSVColor(hue, 200, 250).to_rgb();
       auto textcolor = ESPHSVColor(hue, 250, 100).to_rgb();
-      buff->printf(10, 66, LargeFont, Color(200, 200, 200), TextAlign::TOP_LEFT, "Outside");
-      buff->printf(200, 65, LargeFont, highlight_color, TextAlign::TOP_RIGHT, "%4.0f°F", outside_temp->state);
-      buff->printf(202, 67, LargeFont, shadow_color, TextAlign::TOP_RIGHT, "%4.0f°F", outside_temp->state);
-      buff->printf(201, 66, LargeFont, textcolor, TextAlign::TOP_RIGHT, "%4.0f°F", outside_temp->state);
+      buff->printf(10, 66, SmallFont, Color(200, 200, 200), TextAlign::TOP_LEFT, temp_label);
+      buff->printf(200, 65, LargeFont, highlight_color, TextAlign::TOP_RIGHT, "%4.0f°F", outside_t.state);
+      buff->printf(202, 67, LargeFont, shadow_color, TextAlign::TOP_RIGHT, "%4.0f°F", outside_t.state);
+      buff->printf(201, 66, LargeFont, textcolor, TextAlign::TOP_RIGHT, "%4.0f°F", outside_t.state);
 
       buff->line(10, 105, 310, 105, Color(200, 200, 200));
-      buff->printf(10, 110, LargeFont, Color(200, 200, 200), TextAlign::TOP_LEFT, "Inside");
+      buff->printf(10, 110, SmallFont, Color(200, 200, 200), TextAlign::TOP_LEFT, "Inside");
+      buff->printf(10, 150, SmallFont, Color(200, 200, 200), TextAlign::TOP_LEFT, "...");
 
       widget::show_sensor(buff, 210, 110, LargeFont, Color(200, 200, 200), TextAlign::TOP_RIGHT, temperature, false);
       widget::show_sensor(buff, 312, 110, SmallFont, Color(200, 200, 200), TextAlign::TOP_RIGHT, humidity, false);
+      widget::show_sensor(buff, 210, 150, LargeFont, Color(200, 200, 200), TextAlign::TOP_RIGHT, temperature2, false);
 
       if (id(weather_condition).has_state()) {
         auto condition_state = weather_condition->state;
@@ -205,7 +220,6 @@ public:
         }
       }
     }
-  }
 
 protected:
   display::Display *buff_{nullptr};

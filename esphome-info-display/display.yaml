@@ -36,11 +36,11 @@ font:
 
 graph:
   - id: multi_voltage_graph
-    duration: 90min
-    x_grid: 15min
+    duration: 30min
+    x_grid: 5min
     y_grid: 8
     width: 314
-    height: 120
+    height: 110
     traces:
       - sensor: pv_power_0
         line_type: SOLID
@@ -61,7 +61,7 @@ graph:
 display:
   - platform: ili9xxx
     model: M5STACK
-    update_interval: 5s
+    update_interval: 10s
     auto_clear_enabled: true
     dc_pin: 27
     cs_pin: 14
@@ -76,48 +76,43 @@ display:
 
           if (time.is_valid()) {
             it.fill(Color(250,250,250));
+            it.strftime(160, 85, id(LargeFont), Color(60,60,60), TextAlign::CENTER, "%A %B %d", time);
             it.strftime(160, 120, id(LargeFont), Color(20,20,20), TextAlign::CENTER, "%Y-%m-%d %H:%M", time);
+            it.strftime(160, 155, id(LargeFont), Color(20,20,20), TextAlign::CENTER, "%I:%M%p", time);
           } else {
             it.printf(160, 120, id(LargeFont), TextAlign::CENTER, "Loading...");
           }
       - id: energy
         lambda: |- #cpp
-          auto time = id(sntp_time).now();
-          if (time.is_valid()) {
-            widget::TimeWidget(&it);
+          widget::TimeWidget(&it);
 
-            auto graph = id(multi_voltage_graph);
-            it.graph(3, 32, id(multi_voltage_graph), my_red);
+          auto graph = id(multi_voltage_graph);
+          it.graph(3, 35, id(multi_voltage_graph), my_red);
+          const Color line_color(250,240,230);
+          it.vertical_line(82, 151, 86, line_color);
+          it.vertical_line(164, 151, 86, line_color);
+          it.vertical_line(244, 151, 86, line_color);
 
-            if (id(pv_power_0).has_state()) {
-              it.printf(1, 152, id(SmallFont), Color(220,220,220), TextAlign::TOP_LEFT, "PV0 %3.0f W", id(pv_power_0).state);
-              it.printf(1, 172, id(SmallFont), Color(220,220,220), TextAlign::TOP_LEFT, "PV1 %3.0f W", id(pv_power_1).state);
-              it.printf(1, 192, id(SmallFont), Color(220,220,220), TextAlign::TOP_LEFT, "PV2 %3.0f W", id(pv_power_2).state);
-              it.printf(160, 152, id(SmallFont), Color(220,220,220), TextAlign::TOP_RIGHT, "%1.3f kWh", id(pv_yield_0).state);
-              it.printf(160, 172, id(SmallFont), Color(220,220,220), TextAlign::TOP_RIGHT, "%1.3f kWh", id(pv_yield_1).state);
-              it.printf(160, 192, id(SmallFont), Color(220,220,220), TextAlign::TOP_RIGHT, "%1.3f kWh", id(pv_yield_2).state);
-            }
-
-            if (!isnan(id(battery_0_level).state)) {
-              widget::hbar(&it, 170, 154, 75, 20, 100, id(SmallFont), 0, id(battery_0_level));
-              widget::hbar(&it, 170, 174, 75, 20, 100, id(SmallFont), 90, id(battery_1_level));
-              widget::hbar(&it, 170, 194, 75, 20, 100, id(SmallFont), 180, id(battery_2_level));
-              widget::hbar(&it, 170, 214, 75, 20, 100, id(SmallFont), 270, id(battery_3_level));
-            }
+          if (id(pv_power_0).has_state()) {
+            it.printf(1, 152, id(SmallFont), line_color, TextAlign::TOP_LEFT, "PV0 %3.0f W", id(pv_power_0).state);
+            it.printf(161, 152, id(SmallFont), line_color, TextAlign::TOP_RIGHT, "%1.3f kWh", id(pv_yield_0).state);
           }
+          if (id(pv_power_1).has_state()) {
+            it.printf(1, 172, id(SmallFont), line_color, TextAlign::TOP_LEFT, "PV1 %3.0f W", id(pv_power_1).state);
+            it.printf(161, 172, id(SmallFont), line_color, TextAlign::TOP_RIGHT, "%1.3f kWh", id(pv_yield_1).state);
+          }
+          if (id(pv_power_2).has_state()) {
+            it.printf(1, 192, id(SmallFont), line_color, TextAlign::TOP_LEFT, "PV2 %3.0f W", id(pv_power_2).state);
+            it.printf(161, 192, id(SmallFont), line_color, TextAlign::TOP_RIGHT, "%1.3f kWh", id(pv_yield_2).state);
+          }
+
+          widget::hbar(&it, 170, 154, 150, 20, 100, id(SmallFont), 80, id(battery_0_level));
+          widget::hbar(&it, 170, 174, 150, 20, 100, id(SmallFont), 225, id(battery_1_level));
+          widget::hbar(&it, 170, 194, 150, 20, 100, id(SmallFont), 140, id(battery_2_level));
+          widget::hbar(&it, 170, 214, 150, 20, 100, id(SmallFont), 20, id(battery_3_level));
+
       - id: weather
         lambda: |- #cpp
           widget::TimeWidget(&it);
           auto w = new widget::WeatherWidget(&it);
-          w->draw(weather_condition, outside_temp, humidity, temperature);
-
-          // auto time = id(sntp_time).now();
-          // if (time.is_valid()) {
-          //   it.strftime(0, 0, id(LargeFont),TextAlign::TOP_LEFT, "%Y-%m-%d", time);
-          //   it.strftime(312, 0, id(LargeFont),TextAlign::TOP_RIGHT, "%H:%M", time);
-          //   auto lineColor = Color(250, 250, 0);
-          //   it.horizontal_line(0, 31, 320, lineColor.fade_to_black(200));
-          //   it.horizontal_line(0, 32, 318, lineColor.fade_to_black(150));
-          //   it.horizontal_line(0, 33, 316, lineColor.fade_to_black(100));
-          //   it.horizontal_line(0, 34, 314, lineColor);
-          // }
+          w->draw(weather_condition, nws_temperature, outside_temperature, humidity, temperature, bme280_temperature);

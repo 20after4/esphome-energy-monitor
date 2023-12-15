@@ -1,0 +1,192 @@
+
+switch:
+  - platform: gpio
+    pin: 32
+    name: "Display Backlight"
+    id: backlight
+    inverted: false
+    restore_mode: ALWAYS_ON
+
+binary_sensor:
+  - platform: status
+    name: "Node Status"
+    id: system_status
+  - platform: gpio
+    pin: 39
+    internal: true
+    id: button_a
+    on_press:
+      - display.page.show_previous: tft_ha
+      - component.update: tft_ha
+  - platform: gpio
+    pin: 38
+    name: "Button B"
+    id: button_b
+    internal: true
+    on_press:
+      - switch.toggle: backlight
+  - platform: gpio
+    pin: 37
+    name: "Button C"
+    id: button_c
+    internal: true
+    on_press:
+      - display.page.show_next: tft_ha
+      - component.update: tft_ha
+
+text_sensor:
+  - platform: homeassistant
+    id: weather_condition
+    entity_id: weather.kbbg_daynight
+    name: "Weather"
+    internal: true
+
+sensor:
+  - platform: wifi_signal
+    name: "WiFi Signal"
+    id: wifi_signal_db
+    update_interval: 60s
+    entity_category: "diagnostic"
+
+
+  - platform: homeassistant
+    name: "Outside Temperature"
+    id: outside_temperature
+    entity_id: sensor.outside_temperature
+    unit_of_measurement: "°F"
+    internal: true
+
+  - platform: htu21d
+    update_interval: 60s
+    temperature:
+      id: temperature
+      name: "Temperature"
+      filters:
+        - lambda: return x * (9.0/5.0) + 32.0;
+      unit_of_measurement: "°F"
+    humidity:
+      id: humidity
+      name: "Humidity"
+
+  - platform: bme280
+    address: 0x76
+    update_interval: 60s
+    temperature:
+      id: bme280_temperature
+      name: "Temperature (F)"
+      oversampling: 1x
+      filters:
+        - lambda: return x * (9.0/5.0) + 32.0;
+      unit_of_measurement: "°F"
+      device_class: temperature
+    pressure:
+      oversampling: 1x
+      id: atmospheric_pressure
+      name: "Atmospheric Pressure"
+      device_class: atmospheric_pressure
+    humidity:
+      id: humidity2
+      oversampling: 1x
+      name: "Humidity (bme280)"
+      device_class: humidity
+
+  - platform: absolute_humidity
+    name: "Absolute Humidity"
+    temperature: bme280_temperature
+    humidity: humidity2
+    device_class: moisture
+    icon: "mdi:water-percent"
+  - platform: template
+    name: "Dew Point"
+    lambda: |-
+      return (243.5*(log(id(humidity2).raw_state/100)+((17.67*id(bme280_temperature).raw_state)/
+      (243.5+id(bme280_temperature).raw_state)))/(17.67-log(id(humidity2).raw_state/100)-
+      ((17.67*id(bme280_temperature).raw_state)/(243.5+id(bme280_temperature).raw_state))));
+    unit_of_measurement: °C
+    device_class: temperature
+    icon: 'mdi:thermometer-water'
+
+  - platform: homeassistant
+    name: "BMS0 SOC"
+    id: battery_0_level
+    entity_id: sensor.bms0_soc
+    unit_of_measurement: "%"
+    internal: true
+  - platform: homeassistant
+    name: "BMS1 SOC"
+    id: battery_1_level
+    entity_id: sensor.bms1_soc
+    unit_of_measurement: "%"
+    internal: true
+  - platform: homeassistant
+    name: "BMS2 SOC"
+    id: battery_2_level
+    entity_id: sensor.bms2_soc
+    unit_of_measurement: "%"
+    internal: true
+  - platform: homeassistant
+    name: "BMS3 SOC"
+    id: battery_3_level
+    entity_id: sensor.bms3_soc
+    unit_of_measurement: "%"
+    internal: true
+  - platform: homeassistant
+    id: nws_temperature
+    entity_id: weather.kbbg_daynight
+    attribute: temperature
+    unit_of_measurement: "°F"
+    internal: true
+  - platform: homeassistant
+    name: "PV0"
+    id: pv_power_0
+    entity_id: sensor.charger0_pv_power
+    unit_of_measurement: "W"
+    internal: true
+    filters:
+      - sliding_window_moving_average:
+          window_size: 3
+          send_every: 1
+          send_first_at: 1
+      - heartbeat: 10s
+  - platform: homeassistant
+    name: "PV1"
+    id: pv_power_1
+    entity_id: sensor.charger1_pv_power
+    unit_of_measurement: "W"
+    internal: true
+    filters:
+      - sliding_window_moving_average:
+          window_size: 3
+          send_every: 1
+          send_first_at: 1
+      - heartbeat: 10s
+  - platform: homeassistant
+    name: "PV3"
+    id: pv_power_2
+    entity_id: sensor.charger2_pv_power
+    unit_of_measurement: "W"
+    internal: true
+    filters:
+      - sliding_window_moving_average:
+          window_size: 3
+          send_every: 1
+          send_first_at: 1
+      - heartbeat: 10s
+  - platform: homeassistant
+    id: pv_yield_0
+    entity_id: sensor.charger0_yield_today
+    unit_of_measurement: "kWh"
+    internal: true
+    name: "Yield0"
+  - platform: homeassistant
+    id: pv_yield_1
+    entity_id: sensor.charger1_yield_today
+    unit_of_measurement: "kWh"
+    internal: true
+    name: "Yield1"
+  - platform: homeassistant
+    id: pv_yield_2
+    entity_id: sensor.charger2_yield_today
+    unit_of_measurement: "kWh"
+    internal: true
+    name: "Yield2"

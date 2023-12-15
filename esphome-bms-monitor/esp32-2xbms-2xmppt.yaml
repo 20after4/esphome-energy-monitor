@@ -48,26 +48,27 @@ uart:
 
 
 packages:
-  charger0: !include
-    file: charger.yaml
-    vars:
-      victron_id: charger0
-      mac_address: "fdc923f1e120"
-      bindkey: "1a4556bc22ae31112c6193d81660709e"
+  # charger0: !include
+  #   file: charger.yaml
+  #   vars:
+  #     victron_id: charger0
+  #     mac_address: "fdc923f1e120"
+  #     bindkey: !secret charger0_bindkey
 
-  charger1: !include
-    file: charger.yaml
-    vars:
-      victron_id: charger1
-      mac_address: "e3bbba57b89d"
-      bindkey: "9a4825845cf53e74484af66800026083"
 
-  charger2: !include
-    file: charger.yaml
-    vars:
-      victron_id: charger2
-      mac_address: "fd4614c6f313"
-      bindkey: "88356df40ca169ace8f5cb4b9d2f111c"
+  # charger1: !include
+  #   file: charger.yaml
+  #   vars:
+  #     victron_id: charger1
+  #     mac_address: "e3bbba57b89d"
+  #     bindkey: !secret charger1_bindkey
+
+  # charger2: !include
+  #   file: charger.yaml
+  #   vars:
+  #     victron_id: charger2
+  #     mac_address: "fd4614c6f313"
+  #     bindkey: !secret charger2_bindkey
 
   bms0: !include
     file: bms.yaml
@@ -75,17 +76,17 @@ packages:
       bms_id: bms0
       bms_mac_address: "A4:C1:37:01:62:8B"
 
-  bms1: !include
-    file: bms.yaml
-    vars:
-      bms_id: bms1
-      bms_mac_address: "A4:C1:38:E1:D0:0C"
+  # bms1: !include
+  #   file: bms.yaml
+  #   vars:
+  #     bms_id: bms1
+  #     bms_mac_address: "A4:C1:38:E1:D0:0C"
 
-  bms2: !include
-    file: bms.yaml
-    vars:
-      bms_id: bms2
-      bms_mac_address: "A4:C1:37:32:98:27"
+  # bms2: !include
+  #   file: bms.yaml
+  #   vars:
+  #     bms_id: bms2
+  #     bms_mac_address: "A4:C1:37:32:98:27"
 
   # bms3: !include
   #   file: bms.yaml
@@ -100,15 +101,15 @@ sensor:
     update_interval: 60s
     entity_category: "diagnostic"
 
-  - platform: htu21d
-    update_interval: 60s
-    temperature:
-      id: temperature
-      name: "Temperature (Si7021)"
-      filters:
-      - lambda: return x * (9.0/5.0) + 32.0;
-      unit_of_measurement: "°F"
-    humidity:
-      id: humidity
-      name: "Humidity (Si7021)"
-      device_class: humidity
+  # - platform: htu21d
+  #   update_interval: 60s
+  #   temperature:
+  #     id: temperature
+  #     name: "Temperature (Si7021)"
+  #     filters:
+  #     - lambda: return x * (9.0/5.0) + 32.0;
+  #     unit_of_measurement: "°F"
+  #   humidity:
+  #     id: humidity
+  #     name: "Humidity (Si7021)"
+  #     device_class: humidity
