@@ -3,22 +3,20 @@ substitutions:
 
 esphome:
   name: esp32-m5stack-lcd
-  # libraries:
-  #   - "display"
   includes:
     - widget.h
-    #- src/esphome/components/light/esp_hsv_color.h
   platformio_options:
     board_build.flash_mode: dio
     board_build.f_cpu: 240000000L
     board_build.f_flash: 40000000L
-    board_build.flash_size: 4MB
-    board_upload.flash_size: 4MB
+    #board_build.flash_size: 4MB
+    #board_upload.flash_size: 4MB
 
 esp32:
   board: m5stack-grey
   framework:
     type: esp-idf
+  flash_size: 4MB
 
 psram:
   speed: 40Mhz
@@ -36,6 +34,46 @@ spi:
 i2c:
   sda: 21
   scl: 22
+  scan: true
 
 <<: !include display.yaml
 <<: !include sensors.yaml
+
+packages:
+  pv-sensors: !include
+    file: pv-sensors.yaml
+
+switch:
+  - platform: gpio
+    pin: 32
+    name: "Display Backlight"
+    id: backlight
+    inverted: false
+    restore_mode: ALWAYS_ON
+
+binary_sensor:
+  - platform: status
+    name: "Node Status"
+    id: system_status
+  - platform: gpio
+    pin: 39
+    internal: true
+    id: button_a
+    on_press:
+      - display.page.show_previous: tft_ha
+      - component.update: tft_ha
+  - platform: gpio
+    pin: 38
+    name: "Button B"
+    id: button_b
+    internal: true
+    on_press:
+      - switch.toggle: backlight
+  - platform: gpio
+    pin: 37
+    name: "Button C"
+    id: button_c
+    internal: true
+    on_press:
+      - display.page.show_next: tft_ha
+      - component.update: tft_ha

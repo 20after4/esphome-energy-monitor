@@ -2,7 +2,7 @@
 ota:
 
 logger:
-  level: error
+  level: INFO
 
 time:
   - platform: sntp
@@ -19,3 +19,4 @@ mdns:
 
 preferences:
   flash_write_interval: 30min
+

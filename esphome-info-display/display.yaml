@@ -32,8 +32,6 @@ font:
     id: SmallFont
     size: 16
 
-
-
 graph:
   - id: multi_voltage_graph
     duration: 30min
@@ -95,15 +93,28 @@ display:
 
           if (id(pv_power_0).has_state()) {
             it.printf(1, 152, id(SmallFont), line_color, TextAlign::TOP_LEFT, "PV0 %3.0f W", id(pv_power_0).state);
-            it.printf(161, 152, id(SmallFont), line_color, TextAlign::TOP_RIGHT, "%1.3f kWh", id(pv_yield_0).state);
+            it.printf(161, 152, id(SmallFont), line_color, TextAlign::TOP_RIGHT,
+                "%1.3f %s",
+                id(pv_yield_0).state,
+                id(pv_yield_0).get_unit_of_measurement().c_str()
+            );
           }
           if (id(pv_power_1).has_state()) {
             it.printf(1, 172, id(SmallFont), line_color, TextAlign::TOP_LEFT, "PV1 %3.0f W", id(pv_power_1).state);
-            it.printf(161, 172, id(SmallFont), line_color, TextAlign::TOP_RIGHT, "%1.3f kWh", id(pv_yield_1).state);
+            it.printf(161, 172,
+                    id(SmallFont), line_color, TextAlign::TOP_RIGHT,
+                    "%1.3f %s",
+                    id(pv_yield_1).state,
+                    id(pv_yield_1).get_unit_of_measurement().c_str()
+            );
           }
           if (id(pv_power_2).has_state()) {
             it.printf(1, 192, id(SmallFont), line_color, TextAlign::TOP_LEFT, "PV2 %3.0f W", id(pv_power_2).state);
-            it.printf(161, 192, id(SmallFont), line_color, TextAlign::TOP_RIGHT, "%1.3f kWh", id(pv_yield_2).state);
+            it.printf(161, 192, id(SmallFont), line_color, TextAlign::TOP_RIGHT,
+                "%1.3f %s",
+                id(pv_yield_2).state,
+                id(pv_yield_2).get_unit_of_measurement().c_str()
+            );
           }
 
           widget::hbar(&it, 170, 154, 150, 20, 100, id(SmallFont), 80, id(battery_0_level));
@@ -115,4 +126,4 @@ display:
         lambda: |- #cpp
           widget::TimeWidget(&it);
           auto w = new widget::WeatherWidget(&it);
-          w->draw(weather_condition, nws_temperature, outside_temperature, humidity, temperature, bme280_temperature);
+          w->draw(weather_condition, nws_temperature, outside_temperature, humidity, temperature, bme280_temperature, sea_level_pressure);

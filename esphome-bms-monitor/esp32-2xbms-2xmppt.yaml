@@ -1,12 +1,11 @@
-substitutions:
-  devicename: "solarmonitor"
-
 esphome:
-  name: jbd-bms-ble-mppt
-  comment: "Monitor JBD-BMS + Victron MPPT"
+  name: bms01
+  comment: "Monitor JBD-BMS"
+  area: carport
   project:
-    name: "syssi.esphome-jbd-bms"
-    version: 1.5.0
+    name: "20after4.esphome-energy-monitor"
+    version: 1.0.0
+
 
 esp32:
   board: wemos_d1_mini32
@@ -17,30 +16,46 @@ preferences:
 
 external_components:
   - source: github://syssi/esphome-jbd-bms@main
-    refresh: 0s
-  - source: github://KinDR007/VictronMPPT-ESPHOME@main
-    refresh: 0s
-  - source: github://Fabian-Schmidt/esphome-victron_ble
-    refresh: 0s
+  # - source: github://KinDR007/VictronMPPT-ESPHOME@main
+  #   refresh: 0s
+  # - source: github://Fabian-Schmidt/esphome-victron_ble
+  #   refresh: 0s
 
-<<: !include wifi.yaml
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  ap:
+    ssid: "${devicename} Hotspot"
+    password: !secret wifi_password
+  manual_ip:
+    static_ip: 10.1.1.185
+    gateway: 10.1.1.1
+    subnet: 255.255.255.0
+  use_address: 10.1.1.185
+
 <<: !include common.yaml
 
 # deep_sleep:
 #   id: deep_sleep0
-#   run_duration: 3min
-#   sleep_duration: 3min
+#   run_duration: 2min
+#   sleep_duration: 2min
+
+switch:
+  - platform: safe_mode
+    name: "BMS Monitor - Safe Mode"
+    id: safe_mode_switch
 
 esp32_ble_tracker:
 
-uart:
-  - id: uart_0
-    baud_rate: 19200
-    rx_pin: GPIO18
+# uart:
+#   - id: uart_0
+#     baud_rate: 19200
+#     rx_pin: GPIO18
 
-  - id: uart_1
-    baud_rate: 19200
-    rx_pin: GPIO19
+#   - id: uart_1
+#     baud_rate: 19200
+#     rx_pin: GPIO19
 
   # - id: uart_2
   #   baud_rate: 19200
@@ -48,39 +63,33 @@ uart:
 
 
 packages:
-  # charger0: !include
-  #   file: charger.yaml
-  #   vars:
-  #     victron_id: charger0
-  #     mac_address: "fdc923f1e120"
-  #     bindkey: !secret charger0_bindkey
 
-
-  # charger1: !include
-  #   file: charger.yaml
-  #   vars:
-  #     victron_id: charger1
-  #     mac_address: "e3bbba57b89d"
-  #     bindkey: !secret charger1_bindkey
-
-  # charger2: !include
-  #   file: charger.yaml
-  #   vars:
-  #     victron_id: charger2
-  #     mac_address: "fd4614c6f313"
-  #     bindkey: !secret charger2_bindkey
+  charger0: !include
+    file: charger.yaml
+    vars:
+      victron_id: charger0
+      mac_address: "fdc923f1e120"
+      bindkey: !secret charger0_bindkey
+  charger1: !include
+    file: charger.yaml
+    vars:
+      victron_id: charger1
+      mac_address: "e3bbba57b89d"
+      bindkey: !secret charger1_bindkey
 
   bms0: !include
     file: bms.yaml
     vars:
       bms_id: bms0
       bms_mac_address: "A4:C1:37:01:62:8B"
+      update_interval: 30s
 
-  # bms1: !include
-  #   file: bms.yaml
-  #   vars:
-  #     bms_id: bms1
-  #     bms_mac_address: "A4:C1:38:E1:D0:0C"
+  bms1: !include
+    file: bms.yaml
+    vars:
+      bms_id: bms1
+      bms_mac_address: "A4:C1:38:E1:D0:0C"
+      update_interval: 30s
 
   # bms2: !include
   #   file: bms.yaml
@@ -113,3 +122,24 @@ sensor:
   #     id: humidity
   #     name: "Humidity (Si7021)"
   #     device_class: humidity
+
+
+  - platform: homeassistant
+    name: "Outside Temperature"
+    id: outside_temperature
+    entity_id: sensor.outside_temperature
+    unit_of_measurement: "°F"
+    internal: true
+    on_value_range:
+    - below: 33.0
+      then:
+        - script.execute:
+            id: bms0_disable_charging_script
+            reason: Too cold
+        - script.execute:
+            id: bms1_disable_charging_script
+            reason: Too cold
+    - above: 34.5
+      then:
+        - script.execute: bms0_enable_charging_script
+        - script.execute: bms1_enable_charging_script

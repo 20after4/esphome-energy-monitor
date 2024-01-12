@@ -148,7 +148,7 @@ class WeatherWidget {
 public:
   WeatherWidget(display::Display *buff): buff_(buff) {};
 
-  void draw(text_sensor::TextSensor *weather_condition, sensor::Sensor *nws_temp, sensor::Sensor *outside_temp, sensor::Sensor *humidity, sensor::Sensor *temperature, sensor::Sensor *temperature2) {
+  void draw(text_sensor::TextSensor *weather_condition, sensor::Sensor *nws_temp, sensor::Sensor *outside_temp, sensor::Sensor *humidity, sensor::Sensor *temperature, sensor::Sensor *temperature2, sensor::Sensor *pressure) {
       static std::map<std::string, BaseImage*> weather_state {
           { "sunny", ::sunny },
           { "clear-night", ::clearnight },
@@ -200,6 +200,7 @@ public:
       widget::show_sensor(buff, 210, 110, LargeFont, Color(200, 200, 200), TextAlign::TOP_RIGHT, temperature, false);
       widget::show_sensor(buff, 312, 110, SmallFont, Color(200, 200, 200), TextAlign::TOP_RIGHT, humidity, false);
       widget::show_sensor(buff, 210, 150, LargeFont, Color(200, 200, 200), TextAlign::TOP_RIGHT, temperature2, false);
+      widget::show_sensor(buff, 210, 190, LargeFont, Color(200, 200, 200), TextAlign::TOP_RIGHT, pressure, false);
 
       if (id(weather_condition).has_state()) {
         auto condition_state = weather_condition->state;

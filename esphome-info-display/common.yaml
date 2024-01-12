@@ -9,7 +9,7 @@ wifi:
 ota:
 mdns:
 logger:
-  level: ERROR
+  level: INFO
 
 time:
   - platform: sntp

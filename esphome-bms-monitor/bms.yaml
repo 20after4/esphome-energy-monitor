@@ -1,3 +1,7 @@
+external_components:
+#  - source: ../esphome-jbd-bms/
+  - source: github://syssi/esphome-jbd-bms@main
+
 ble_client:
   - mac_address: ${bms_mac_address}
     id: ble_client_${bms_id}
@@ -5,7 +9,7 @@ ble_client:
 jbd_bms_ble:
   - id: ${bms_id}
     ble_client_id: ble_client_${bms_id}
-    update_interval: 15s
+    update_interval: ${update_interval}
 
 binary_sensor:
   - platform: jbd_bms_ble
@@ -15,26 +19,80 @@ binary_sensor:
       device_class: running
     online_status:
       name: "${bms_id} online status"
-      device_class: connectivity
 
+script:
+  - id: ${bms_id}_disable_charging_script
+    parameters:
+      reason: string
+    then:
+      - text_sensor.template.publish:
+          id: ${bms_id}_status
+          state: !lambda return reason;
+      - switch.turn_off: ${bms_id}_enable_charging
+
+  - id: ${bms_id}_enable_charging_script
+    then:
+      - if:
+          condition:
+            and:
+              - sensor.in_range:
+                  id: outside_temperature
+                  above: 33.0
+                  below: 100
+              - sensor.in_range:
+                  id: ${bms_id}_SOC
+                  below: 99.0
+              - switch.is_off: ${bms_id}_enable_charging
+          then:
+            - switch.turn_on: ${bms_id}_enable_charging
+            - text_sensor.template.publish:
+                id: ${bms_id}_status
+                state: "Normal"
+      - if:
+          condition:
+            - sensor.in_range:
+                id: outside_temperature
+                below: 32.0
+          then:
+            - switch.turn_off: ${bms_id}_enable_charging
+            - text_sensor.template.publish:
+                id: ${bms_id}_status
+                state: "Too cold"
+      - if:
+          condition:
+            - sensor.in_range:
+                id: ${bms_id}_SOC
+                above: 99.0
+          then:
+            - switch.turn_off: ${bms_id}_enable_charging
+            - text_sensor.template.publish:
+                id: ${bms_id}_status
+                state: "Fully charged"
 sensor:
   - platform: jbd_bms_ble
     jbd_bms_ble_id: ${bms_id}
+
     charging_power:
       id: ${bms_id}_charging_power
       name: "${bms_id} charging power"
       device_class: power
       unit_of_measurement: W
-      filters:
-        - multiply: -1
     discharging_power:
       id: ${bms_id}_discharging_power
       name: "${bms_id} discharging power"
       device_class: power
       unit_of_measurement: W
     state_of_charge:
+      id: ${bms_id}_SOC
       name: "${bms_id} SOC"
       device_class: battery
+      on_value_range:
+        - below: 60.0
+          then:
+          - script.execute: ${bms_id}_enable_charging_script
+        - above: 99.0
+          then:
+          - script.execute: ${bms_id}_enable_charging_script
     capacity_remaining:
       id: ${bms_id}_capacity_remaining
       name: "${bms_id} capacity remaining"
@@ -44,67 +102,125 @@ sensor:
       name: "${bms_id} total voltage"
       id: ${bms_id}_total_voltage
       device_class: voltage
+      icon: "mdi:battery-outline"
+      accuracy_decimals: 2
     average_cell_voltage:
       name: "${bms_id} average cell voltage"
       id: ${bms_id}_average_cell_voltage
       device_class: voltage
+      icon: "mdi:battery-outline"
+      accuracy_decimals: 4
     delta_cell_voltage:
       name: "${bms_id} delta cell voltage"
+      id: ${bms_id}_delta_cell_voltage
+      device_class: voltage
+      icon: "mdi:battery-outline"
+      accuracy_decimals: 4
+      on_value_range:
+        - above: 0.25
+          then:
+            - script.execute:
+                id: ${bms_id}_disable_charging_script
+                reason: "Cells unbalanced"
+        - below: 0.15
+          then:
+            - script.execute: ${bms_id}_enable_charging_script
+    max_cell_voltage:
+      name: "${bms_id} max cell voltage"
+      id: ${bms_id}_max_cell_voltage
+      device_class: voltage
+      icon: "mdi:battery-outline"
+      accuracy_decimals: 3
+    min_cell_voltage:
+      name: "${bms_id} min cell voltage"
+      id: ${bms_id}_min_cell_voltage
+      device_class: voltage
+      icon: "mdi:battery-outline"
+      accuracy_decimals: 3
+
+
     temperature_1:
       name: "${bms_id} temperature 1"
       device_class: temperature
+      unit_of_measurement: "°C"
+      filters:
+        - throttle_average: 120s
     temperature_2:
       name: "${bms_id} temperature 2"
       device_class: temperature
+      unit_of_measurement: "°C"
+      filters:
+        - throttle_average: 120s
     temperature_3:
       name: "${bms_id} temperature 3"
       device_class: temperature
+      unit_of_measurement: "°C"
+      filters:
+        - filter_out: nan
+        - throttle_average: 120s
 
   - platform: template
-    name: "total energy remaining"
+    name: "${bms_id} total energy remaining"
     id: ${bms_id}_total_energy_remaining
     unit_of_measurement: 'Wh'
     accuracy_decimals: 0
     device_class: energy_storage
-    icon: "mdi:home-battery-outline"
+    icon: "mdi:battery-outline"
     lambda: |-
       if (id(${bms_id}_capacity_remaining).state) {
         return id(${bms_id}_capacity_remaining).state * id(${bms_id}_total_voltage).state;
       } else {
         return {};
       }
-    update_interval: 120s
+    filters:
+      - throttle: 120s
 
   - platform: total_daily_energy
     name: "${bms_id} energy stored"
     power_id: ${bms_id}_charging_power
-    unit_of_measurement: 'kWh'
+    unit_of_measurement: 'Wh'
     state_class: total_increasing
     device_class: energy
-    accuracy_decimals: 4
+    accuracy_decimals: 2
     filters:
-      - multiply: 0.001
+      - throttle: 60s
 
   - platform: total_daily_energy
     name: "${bms_id} energy consumed"
     power_id: ${bms_id}_discharging_power
-    unit_of_measurement: 'kWh'
+    unit_of_measurement: 'Wh'
     state_class: total_increasing
     device_class: energy
-    accuracy_decimals: 4
+    accuracy_decimals: 2
     filters:
-      - multiply: 0.001
+      - throttle: 60s
 
 
 text_sensor:
   - platform: jbd_bms_ble
     jbd_bms_ble_id: ${bms_id}
     errors:
+      id: ${bms_id}_errors
       name: "${bms_id} errors"
       entity_category: diagnostic
-    operation_status:
-      name: "${bms_id} operation status"
-      entity_category: diagnostic
+  - platform: template
+    name: "${bms_id} status"
+    id: ${bms_id}_status
+    lambda: |-
+      if (id(${bms_id}_errors).has_state()) {
+        return {id(${bms_id}_errors).get_state().c_str()};
+      }
+      if (id(${bms_id}_charging_power).state) {
+        return {"Charging"};
+      }
+      if (id(${bms_id}_enable_charging).state == false) {
+        return {"Charging disabled"};
+      }
+      if (id(${bms_id}_discharging_power).state) {
+        return {"Discharging"};
+      }
+      return {"Idle"};
+
 
 switch:
   - platform: ble_client
@@ -114,8 +230,14 @@ switch:
   - platform: jbd_bms_ble
     jbd_bms_ble_id: ${bms_id}
     charging:
+      id: ${bms_id}_enable_charging
       name: "${bms_id} enable charging"
       icon: "mdi:battery-charging"
+      on_turn_on:
+      - text_sensor.template.publish:
+          id: ${bms_id}_status
+          state: "Normal"
     discharging:
+      id: ${bms_id}_enable_discharging
       name: "${bms_id} enable discharging"
       icon: "mdi:battery"

@@ -7,3 +7,4 @@
 /VictronMPPT-ESPHOME
 /esphome-jbd-bms
 /fonts
+**/secrets.yaml

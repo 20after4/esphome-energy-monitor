@@ -37,9 +37,9 @@ sensor:
 #    battery_type:
 #      name: "${inverter_name} battery_type"
 #    current_max_ac_charging_current:
-#      name: "${inverter_name} current_max_ac_charging_current"
+#      name: "${inverter_name} max_ac_charging_current"
 #    current_max_charging_current:
-#      name: "${inverter_name} current_max_charging_current"
+#      name: "${inverter_name} max_charging_current"
 #    input_voltage_range:
 #      name: "${inverter_name} input_voltage_range"
 #    output_source_priority:
