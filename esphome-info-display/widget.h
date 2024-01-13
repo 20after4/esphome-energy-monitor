@@ -200,7 +200,7 @@ public:
       widget::show_sensor(buff, 210, 110, LargeFont, Color(200, 200, 200), TextAlign::TOP_RIGHT, temperature, false);
       widget::show_sensor(buff, 312, 110, SmallFont, Color(200, 200, 200), TextAlign::TOP_RIGHT, humidity, false);
       widget::show_sensor(buff, 210, 150, LargeFont, Color(200, 200, 200), TextAlign::TOP_RIGHT, temperature2, false);
-      widget::show_sensor(buff, 210, 190, LargeFont, Color(200, 200, 200), TextAlign::TOP_RIGHT, pressure, false);
+      widget::show_sensor(buff, 312, 150, SmallFont, Color(200, 200, 200), TextAlign::TOP_RIGHT, pressure, false);
 
       if (id(weather_condition).has_state()) {
         auto condition_state = weather_condition->state;

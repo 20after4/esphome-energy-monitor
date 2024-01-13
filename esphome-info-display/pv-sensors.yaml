@@ -71,18 +71,18 @@ sensor:
   - platform: homeassistant
     id: pv_yield_0
     entity_id: sensor.charger0_yield_today
-    unit_of_measurement: "kWh"
+    unit_of_measurement: "Wh"
     internal: true
     name: "Yield0"
   - platform: homeassistant
     id: pv_yield_1
     entity_id: sensor.charger1_yield_today
-    unit_of_measurement: "kWh"
+    unit_of_measurement: "Wh"
     internal: true
     name: "Yield1"
   - platform: homeassistant
     id: pv_yield_2
     entity_id: sensor.charger2_yield_today
-    unit_of_measurement: "kWh"
+    unit_of_measurement: "Wh"
     internal: true
     name: "Yield2"
