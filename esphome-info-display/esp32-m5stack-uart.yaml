@@ -1,0 +1,111 @@
+substitutions:
+  devicename: "pipsolar-uart"
+
+esphome:
+  name: pipsolar-uart
+  includes:
+    - widget.h
+  platformio_options:
+    board_build.flash_mode: dio
+    board_build.f_cpu: 240000000L
+    board_build.f_flash: 40000000L
+    #board_build.flash_size: 4MB
+    #board_upload.flash_size: 4MB
+
+esp32:
+  board: m5stack-grey
+  framework:
+    type: esp-idf
+  flash_size: 4MB
+
+psram:
+  speed: 40Mhz
+
+<<: !include common.yaml
+
+
+light:
+
+spi:
+  clk_pin: 18
+  mosi_pin: 23
+  # miso_pin: 25
+
+i2c:
+  sda: 21
+  scl: 22
+  scan: true
+
+
+uart:
+  - id: uart_1
+    baud_rate: 2400
+    rx_pin: GPIO3
+    tx_pin: GPIO1
+
+  - id: uart_2
+    baud_rate: 9600
+    rx_pin: GPIO17
+    tx_pin: GPIO16
+
+    # debug:
+    #     direction: BOTH
+    #     dummy_receiver: false
+    #     after:
+    #       delimiter: "\r"
+    #     sequence:
+    #       - lambda: UARTDebug::log_string(direction, bytes);
+
+
+
+#<<: !include sensors.yaml
+
+packages:
+  pv-sensors: !include
+    file: pv-sensors.yaml
+  pzem004t: !include
+    file: pzem004t.yaml
+    vars:
+      uart_id: uart_2
+  inverter1: !include
+    file: pipsolar.yaml
+    vars:
+      inverter_id: inverter0
+      inverter_name: "Inverter0"
+      uart_id: uart_1
+switch:
+  - platform: gpio
+    pin: 32
+    name: "Display Backlight"
+    id: backlight
+    inverted: false
+    restore_mode: ALWAYS_ON
+
+<<: !include display-inverter.yaml
+
+
+binary_sensor:
+  - platform: gpio
+    pin: 39
+    internal: true
+    id: button_a
+    on_press:
+      - display.page.show_previous: tft_ha
+      - component.update: tft_ha
+  - platform: gpio
+    pin: 38
+    name: "Button B"
+    id: button_b
+    internal: true
+    on_press:
+      - switch.toggle: backlight
+  - platform: gpio
+    pin: 37
+    name: "Button C"
+    id: button_c
+    internal: true
+    on_press:
+      - display.page.show_next: tft_ha
+      - component.update: tft_ha
+
+

@@ -68,18 +68,34 @@ display:
     id: tft_ha
     invert_colors: false
     pages:
-      - id: loading
+      - id: inverter_page
         lambda: |- #cpp
-          auto time = id(sntp_time).now();
+          widget::TimeWidget(&it);
+          int x = 105;
+          int y = 20;
+          sensor::Sensor* mysensors[] = {
+            inverter0_ac_output_active_power,
+            inverter0_float_voltage,
+            inverter0_battery_charging_current,
+            inverter0_battery_discharge_current,
+            inverter0_battery_voltage,
+            inverter0_bus_voltage,
+            inverter0_pv_input_voltage,
+            inverter0_pv_input_current_for_battery,
+            inverter0_pv_power_balance,
+          };
 
-          if (time.is_valid()) {
-            it.fill(Color(250,250,250));
-            it.strftime(160, 85, id(LargeFont), Color(60,60,60), TextAlign::CENTER, "%A %B %d", time);
-            it.strftime(160, 120, id(LargeFont), Color(20,20,20), TextAlign::CENTER, "%Y-%m-%d %H:%M", time);
-            it.strftime(160, 155, id(LargeFont), Color(20,20,20), TextAlign::CENTER, "%I:%M%p", time);
-          } else {
-            it.printf(160, 120, id(LargeFont), TextAlign::CENTER, "Loading...");
+          for (int i=0; i < sizeof(mysensors)/sizeof(mysensors[0]); i++) {
+            auto sensor = id(&mysensors[i]);
+            y += 20;
+            if (y >= 220) {
+              y = 20;
+              x += 100;
+            }
+            widget::show_sensor(&it, x, y, id(SmallFont), Color(200, 200, 200), TextAlign::TOP_RIGHT, sensor);
           }
+          // widget::show_sensor(&it, 170, 154, id(SmallFont), Color(200, 200, 200), TextAlign::TOP_RIGHT, id(inverter0_ac_output_active_power));
+          // widget::show_sensor(&it, 170, 174, id(SmallFont), Color(200, 200, 200), TextAlign::TOP_RIGHT, id(inverter0_float_voltage));
       - id: energy
         lambda: |- #cpp
           widget::TimeWidget(&it);
@@ -122,8 +138,3 @@ display:
           widget::hbar(&it, 170, 194, 150, 20, 100, id(SmallFont), 140, id(battery_2_level));
           widget::hbar(&it, 170, 214, 150, 20, 100, id(SmallFont), 20, id(battery_3_level));
 
-      - id: weather
-        lambda: |- #cpp
-          widget::TimeWidget(&it);
-          auto w = new widget::WeatherWidget(&it);
-          w->draw(weather_condition, nws_temperature, outside_temperature, humidity, temperature, bme280_temperature, sea_level_pressure);

@@ -1,0 +1,24 @@
+modbus:
+  id: modbus1
+  uart_id: ${uart_id}
+
+sensor:
+  - platform: pzemac
+    modbus_id: modbus1
+    update_interval: 30s
+    current:
+      name: "Utility AC Current"
+      id: utility_input_current
+    voltage:
+      name: "Utility AC Voltage"
+      id: utility_input_voltage
+    power:
+      name: "Utility AC Power"
+      id: utility_input_power
+    energy:
+      name: "Utility AC Energy"
+      id: utility_input_energy
+    power_factor:
+      name: "Utility AC Power Factor"
+      id: utility_input_power_factor
+

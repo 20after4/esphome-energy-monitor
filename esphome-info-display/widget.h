@@ -143,7 +143,6 @@ void TimeWidget(display::Display *buff)
 
 }
 
-
 class WeatherWidget {
 public:
   WeatherWidget(display::Display *buff): buff_(buff) {};
