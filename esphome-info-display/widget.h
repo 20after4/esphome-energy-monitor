@@ -1,6 +1,8 @@
+#include <algorithm>
 #include <cstdint>
-#include <utility>
 #include <map>
+#include <utility>
+#include <typeinfo>
 #include "esphome/components/sensor/sensor.h"
 #include "esphome/components/text_sensor/text_sensor.h"
 #include "esphome/components/image/image.h"
@@ -58,6 +60,39 @@ void show_sensor(Display *it, int x, int y, BaseFont *font, Color color, TextAli
         it->printf(x, y, font, color, align, "%-11s %1.*f%s", sensor->get_name().c_str(), sensor->get_accuracy_decimals(), value, sensor->get_unit_of_measurement().c_str());
     } else {
         it->printf(x, y, font, color, align, "%1.*f%s", sensor->get_accuracy_decimals(), value, sensor->get_unit_of_measurement().c_str());
+    }
+}
+
+void show_sensors(Display *it, int x, int y, int length, sensor::Sensor *sensors[], BaseFont *font, Color color = COLOR_ON)
+{
+    int display_width = it->get_width();
+    int display_height = it->get_height();
+
+    int x_start, y_start;
+    int width, height;
+    auto text = "1IiGgQpPyY";
+    it->get_text_bounds(x, y, text, font, TextAlign::TOP_LEFT, &x_start, &y_start, &width, &height);
+
+    for (int i = 0; i < length; i++) {
+
+        auto sensor = sensors[i];
+
+        if (sensor && sensor->has_state()) {
+
+            it->printf(x, y, font, color, TextAlign::TOP_LEFT, "%-11s", sensor->get_name().c_str());
+
+            auto value = sensor->get_state();
+            auto format = "%1.*f%s";
+            it->printf(display_width, y, font, color, TextAlign::TOP_RIGHT, format, sensor->get_accuracy_decimals(), value, sensor->get_unit_of_measurement().c_str());
+        } else {
+            it->printf(x, y, font, color, TextAlign::TOP_LEFT, "%-11s", sensor->get_name().c_str());
+            it->printf(display_width, y, font, color, TextAlign::TOP_RIGHT, "%s", "n/a");
+        }
+        y += height + 1;
+        if (y + height > display_height) {
+            ESP_LOGE("widget", "Too many sensors for a single page. y > display_height");
+            break;
+        }
     }
 }
 

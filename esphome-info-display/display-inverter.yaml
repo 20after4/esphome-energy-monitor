@@ -68,34 +68,37 @@ display:
     id: tft_ha
     invert_colors: false
     pages:
-      - id: inverter_page
+      - id: inverter_page1
         lambda: |- #cpp
           widget::TimeWidget(&it);
-          int x = 105;
+          int x = 0;
           int y = 20;
           sensor::Sensor* mysensors[] = {
+            utility_input_power,
+            inverter0_grid_voltage,
+            inverter0_grid_frequency,
+            inverter0_ac_output_apparent_power,
             inverter0_ac_output_active_power,
-            inverter0_float_voltage,
+            inverter0_ac_output_frequency,
+          };
+          int len = sizeof(mysensors) / sizeof(mysensors[0]);
+          widget::show_sensors(&it, x, y, len, mysensors, id(SmallFont), Color(200, 200, 200) );
+
+      - id: inverter_page2
+        lambda: |- #cpp
+          widget::TimeWidget(&it);
+          int x = 0;
+          int y = 20;
+          sensor::Sensor* mysensors[] = {
+            inverter0_output_mode,
             inverter0_battery_charging_current,
             inverter0_battery_discharge_current,
             inverter0_battery_voltage,
-            inverter0_bus_voltage,
             inverter0_pv_input_voltage,
-            inverter0_pv_input_current_for_battery,
-            inverter0_pv_power_balance,
           };
+          int len = sizeof(mysensors) / sizeof(mysensors[0]);
+          widget::show_sensors(&it, x, y, len, mysensors, id(SmallFont), Color(200, 200, 200) );
 
-          for (int i=0; i < sizeof(mysensors)/sizeof(mysensors[0]); i++) {
-            auto sensor = id(&mysensors[i]);
-            y += 20;
-            if (y >= 220) {
-              y = 20;
-              x += 100;
-            }
-            widget::show_sensor(&it, x, y, id(SmallFont), Color(200, 200, 200), TextAlign::TOP_RIGHT, sensor);
-          }
-          // widget::show_sensor(&it, 170, 154, id(SmallFont), Color(200, 200, 200), TextAlign::TOP_RIGHT, id(inverter0_ac_output_active_power));
-          // widget::show_sensor(&it, 170, 174, id(SmallFont), Color(200, 200, 200), TextAlign::TOP_RIGHT, id(inverter0_float_voltage));
       - id: energy
         lambda: |- #cpp
           widget::TimeWidget(&it);
@@ -137,4 +140,84 @@ display:
           widget::hbar(&it, 170, 174, 150, 20, 100, id(SmallFont), 225, id(battery_1_level));
           widget::hbar(&it, 170, 194, 150, 20, 100, id(SmallFont), 140, id(battery_2_level));
           widget::hbar(&it, 170, 214, 150, 20, 100, id(SmallFont), 20, id(battery_3_level));
+
+graphical_display_menu:
+  id: menu1
+  display: tft_ha
+  active: true
+  mode: rotary
+  font: SmallFont
+  on_redraw:
+    then:
+      component.update: tft_ha
+  items:
+    - type: command
+      text: 'Back'
+      on_value:
+        then:
+          - display_menu.hide: menu1
+          - component.update: tft_ha
+    - type: select
+      immediate_edit: false
+      text: 'Output Source Priority'
+      select: inverter0_output_source_priority_select
+    - type: select
+      immediate_edit: false
+      text: 'Charger Source Priority'
+      select: inverter0_charger_source_priority_select
+
+
+binary_sensor:
+  - platform: gpio
+    pin: 39
+    internal: true
+    id: button_a
+    filters:
+      - delayed_on: 20ms
+      - delayed_off: 20ms
+    on_press:
+      if:
+        condition:
+          display_menu.is_active: menu1
+        then:
+          - display_menu.up: menu1
+          - component.update: tft_ha
+        else:
+          - display.page.show_previous: tft_ha
+          - component.update: tft_ha
+  - platform: gpio
+    pin: 38
+    name: "Button B"
+    id: button_b
+    internal: true
+    filters:
+      - delayed_on: 10ms
+      - delayed_off: 20ms
+    on_press:
+      - if:
+          condition:
+            display_menu.is_active: menu1
+          then:
+            - display_menu.enter: menu1
+          else:
+            - display_menu.show: menu1
+            - component.update: tft_ha
+  - platform: gpio
+    pin: 37
+    name: "Button C"
+    id: button_c
+    internal: true
+    filters:
+      - delayed_on: 20ms
+      - delayed_off: 20ms
+    on_press:
+      - if:
+          condition:
+            display_menu.is_active: menu1
+          then:
+            - display_menu.down: menu1
+            - component.update: tft_ha
+          else:
+            - display.page.show_next: tft_ha
+            - component.update: tft_ha
 

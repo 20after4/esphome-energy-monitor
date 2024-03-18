@@ -28,11 +28,20 @@ sensor:
       name: "${inverter_name} input_voltage_range"
     output_source_priority:
       name: "${inverter_name} output_source_priority"
+      id: "${inverter_id}_output_source_priority"
+      # on_value:
+      #   then:
+      #     - component.update: ${inverter_id}_output_source_priority_select
+
     charger_source_priority:
       name: "${inverter_name} charger_source_priority"
-
+      id: "${inverter_id}_charger_source_priority"
+      # on_value:
+      #   then:
+      #     - component.update: ${inverter_id}_charger_source_priority_select
     output_mode:
       name: "${inverter_name} output_mode"
+      id: "${inverter_id}_output_mode"
     battery_redischarge_voltage:
       name: "${inverter_name} battery_redischarge_voltage"
 #    pv_ok_condition_for_parallel:
@@ -78,10 +87,10 @@ sensor:
     inverter_heat_sink_temperature:
       name: "${inverter_name} heatsink temperature"
       id: "${inverter_id}_inverter_heat_sink_temperature"
-    pv_input_current_for_battery:
+    pv1_input_current:
       name: "${inverter_name} PV Charging current"
       id: "${inverter_id}_pv_input_current_for_battery"
-    pv_input_voltage:
+    pv1_input_voltage:
       name: "${inverter_name} PV Voltage"
       id: "${inverter_id}_pv_input_voltage"
     battery_voltage_scc:
@@ -94,7 +103,7 @@ sensor:
 #      name: "${inverter_name} battery_voltage_offset_for_fans_on"
 #    eeprom_version:
 #      name: "${inverter_name} eeprom_version"
-    pv_charging_power:
+    pv1_charging_power:
       name: "${inverter_name} PV Charging power"
       id: "${inverter_id}_pv_charging_power"
 
@@ -124,6 +133,7 @@ text_sensor:
     pipsolar_id: ${inverter_id}
     device_mode:
       name: "${inverter_name} device_mode"
+      id: "${inverter_id}_device_mode"
     # last_qpigs:
     #   name: "${inverter_name} last_qpigs"
     # last_qpiri:
@@ -144,6 +154,7 @@ binary_sensor:
 #      name: "${inverter_name} scc_firmware_version"
     load_status:
       name: "${inverter_name} load_status"
+      id: "${inverter_id}_load_status"
     battery_voltage_to_steady_while_charging:
       name: "${inverter_name} battery_voltage_to_steady_while_charging"
     charging_status:
@@ -172,17 +183,114 @@ binary_sensor:
 #    backlight_on:
 #      name: "${inverter_name} backlight_on"
 
+select:
+  - platform: pipsolar
+    pipsolar_id: ${inverter_id}
+    charger_source_priority:
+      id: ${inverter_id}_charger_source_priority_select
+      name: ${inverter_name} Charger Source Priority Select
+      optionsmap:
+        "Utility first": "PCP00"
+        "Solar first": "PCP01"
+        "Solar and utility": "PCP02"
+        "Solar only": "PCP03"
+      statusmap:
+        "0": "Utility first"
+        "1": "Solar first"
+        "2": "Solar and utility"
+        "3": "Solar only"
+    output_source_priority:
+      id: ${inverter_id}_output_source_priority_select
+      name: ${inverter_name} Output Source Priority
+      optionsmap:
+        "Utility first": "POP00"
+        "Solar only": "POP01"
+        "Solar Battery Utility": "POP02"
+      statusmap:
+        "0": "Utility first"
+        "1": "Solar only"
+        "2": "Solar Battery Utility"
+
+  # - platform: template
+  #   id: ${inverter_id}_output_source_priority_select
+  #   name: "${inverter_name} Output Source Priority"
+  #   options:
+  #     - 'Utility'
+  #     - 'Solar'
+  #     - 'Battery'
+  #   update_interval: 30s
+  #   lambda: !lambda |-
+  #     auto sensor = id(${inverter_id}_output_source_priority);
+  #     if (sensor->has_state()) {
+  #       int index = static_cast<int>(sensor->state);
+  #       auto option = id(${inverter_id}_output_source_priority_select).at(index);
+  #       if (option.has_value()) {
+  #         return option.value();
+  #       }
+  #     }
+  #     return std::string("Utility");
+  #   set_action:
+  #     then:
+  #       - lambda: |-
+  #           float value = 1;
+  #           auto select = id(${inverter_id}_output_source_priority_select);
+  #           auto index = select->index_of(x.c_str());
+  #           ESP_LOGI("pip", "set_action: %s", x.c_str());
+  #           ESP_LOGI("pip", "state: %s", select->state.c_str());
+  #           if (index.has_value()) {
+  #             value = static_cast<float>(index.value());
+  #             ESP_LOGI("pip", "value: %f", value);
+  #             id(${inverter_id}_output_source_priority_out).set_level(value);
+  #           }
+
+  # - platform: template
+  #   id: ${inverter_id}_charger_source_priority_select
+  #   name: "${inverter_name} Charge Source Priority"
+  #   options:
+  #     - 'Utility First'
+  #     - 'Solar First'
+  #     - 'Solar + Utility'
+  #     - 'Solar Only'
+  #   lambda: !lambda |-
+  #     auto sensor = id(${inverter_id}_charger_source_priority);
+  #     if (sensor->has_state()) {
+  #       int index = static_cast<int>(sensor->state);
+  #       auto option = id(${inverter_id}_charger_source_priority_select).at(index);
+  #       if (option.has_value()) {
+  #         return option.value();
+  #       }
+  #     }
+  #     return std::string("Solar Only");
+  #   set_action:
+  #     then:
+  #       - output.set_level:
+  #           id: ${inverter_id}_charger_source_priority_out
+  #           level: !lambda |-
+  #             float value = 1;
+  #             auto select = id(${inverter_id}_charger_source_priority_select);
+  #             auto index = select->index_of(x.c_str());
+  #             ESP_LOGI("pip", "set_action: %s", x.c_str());
+  #             ESP_LOGI("pip", "previous state: %s", select->state.c_str());
+  #             if (index.has_value()) {
+  #               value = static_cast<float>(index.value());
+  #               return value;
+  #             }
+  #             return 1.0;
+
 switch:
   - platform: pipsolar
     pipsolar_id: ${inverter_id}
     output_source_priority_utility:
-      name: "${inverter_name} output_source_priority_utility"
+      id: "${inverter_id}_output_source_priority_utility"
+      name: "${inverter_name} Utility priority"
+
     output_source_priority_solar:
-      name: "${inverter_name} output_source_priority_solar"
+      id: "${inverter_id}_output_source_priority_solar"
+      name: "${inverter_name} Solar priority"
+
     output_source_priority_battery:
-      name: "${inverter_name} output_source_priority_battery"
-    input_voltage_range:
-      name: "${inverter_name} input_voltage_range"
+      id: "${inverter_id}_output_source_priority_battery"
+      name: "${inverter_name} Battery priority"
     pv_power_balance:
       name: "${inverter_name} pv_power_balance"
 
@@ -194,7 +302,12 @@ output:
     battery_float_voltage:
       id: ${inverter_id}_battery_float_voltage_out
       possible_values: [53.0, 53.1, 53.2, 53.3, 53.4, 53.5, 53.6, 53.7, 53.8, 53.9, 54.0, 54.1, 54.2, 54.3, 54.4, 54.5, 54.6, 54.7, 54.8, 54.9, 55.0, 55.1, 55.2, 55.3, 55.4, 55.5, 55.6, 55.7, 55.8, 55.9, 56.0, 56.1, 56.2, 56.3, 56.4, 56.5, 56.6, 56.7, 56.8, 56.9, 57.0, 57.1, 57.2, 57.3, 57.4, 57.5, 57.6, 57.7, 57.8, 57.9, 58.0, 58.1, 58.2, 58.3, 58.4, 58.5, 58.6, 58.7, 58.8, 58.9, 59.0, 59.1, 59.2, 59.3, 59.4, 59.5, 59.6, 59.7, 59.8, 59.9]
-
+    output_source_priority:
+      id: ${inverter_id}_output_source_priority_out
+      possible_values: [0.0, 1.0, 2.0]
+    charger_source_priority:
+      id: ${inverter_id}_charger_source_priority_out
+      possible_values: [0.0, 1.0, 2.0, 3.0]
 number:
   - platform: template
     name: ${inverter_name} Float Voltage
