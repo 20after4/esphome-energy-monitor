@@ -41,7 +41,13 @@ uart:
     baud_rate: 2400
     rx_pin: GPIO36
     tx_pin: GPIO4
-
+    debug:
+        direction: BOTH
+        dummy_receiver: false
+        after:
+          delimiter: "\r"
+        sequence:
+          - lambda: UARTDebug::log_string(direction, bytes);
 
 packages:
 
@@ -52,39 +58,31 @@ packages:
       mac_address: "fd4614c6f313"
       bindkey: !secret charger2_bindkey
 
-  # bms0: !include
-  #   file: bms.yaml
-  #   vars:
-  #     bms_id: bms0
-  #     bms_mac_address: "A4:C1:37:01:62:8B"
-
-  # bms1: !include
-  #   file: bms.yaml
-  #   vars:
-  #     bms_id: bms1
-  #     bms_mac_address: "A4:C1:38:E1:D0:0C"
-  #     update_interval: 30s
 
   bms2: !include
     file: bms.yaml
     vars:
       bms_id: bms2
+      linked_bms: bms3
       bms_mac_address: "A4:C1:37:32:98:27"
-      update_interval: 15s
+      update_interval: 10s
+      sync: 1
 
   bms3: !include
     file: bms.yaml
     vars:
       bms_id: bms3
-      bms_mac_address: "A4:C1:37:22:97:3B"
-      update_interval: 15s
+      linked_bms: bms3
+      bms_mac_address: "A4:C1:38:E1:D0:0C"
+      update_interval: 10s
+      sync: 0
 
-  inverter1: !include
-    file: pipsolar.yaml
-    vars:
-      inverter_id: inverter0
-      inverter_name: "Inverter0"
-      uart_id: uart_1
+  # inverter1: !include
+  #   file: pipsolar.yaml
+  #   vars:
+  #     inverter_id: inverter0
+  #     inverter_name: "Inverter0"
+  #     uart_id: uart_1
 
 i2c:
   sda: 13
@@ -96,17 +94,6 @@ sensor:
     id: outside_temperature
     name: "Outside Temperature"
     update_interval: 60s
-    on_value_range:
-    - below: 33.0
-      then:
-        - script.execute:
-            id: bms2_disable_charging_script
-            reason: "Too cold"
-        - script.execute:
-            id: bms3_disable_charging_script
-            reason: "Too cold"
-    - above: 34.5
-      then:
-        - script.execute: bms2_enable_charging_script
-        - script.execute: bms3_enable_charging_script
+
+
 

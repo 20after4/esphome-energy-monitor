@@ -4,6 +4,7 @@ ota:
 logger:
   level: INFO
 
+
 time:
   - platform: sntp
     id: sntp_time
@@ -13,7 +14,7 @@ time:
       - 1.pool.ntp.org
 
 api:
-  reboot_timeout: 10min
+  reboot_timeout: 5min
 
 mdns:
 

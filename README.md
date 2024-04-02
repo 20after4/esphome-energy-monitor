@@ -14,3 +14,4 @@ on the built in LCD of the [m5stack](https://docs.m5stack.com/en/core/gray).
 
 * [config](esphome-info-display/esp32-m5stack-lcd.yaml)
 * [lcd graphics](esphome-info-display/widget.h)
+

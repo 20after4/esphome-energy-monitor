@@ -32,8 +32,8 @@ sensor:
 #      name: "${inverter_name} battery_under_voltage"
 #    battery_bulk_voltage:
 #      name: "${inverter_name} battery_bulk_voltage"
-#    battery_float_voltage:
-#      name: "${inverter_name} battery_float_voltage"
+    battery_float_voltage:
+      name: "${inverter_name} battery_float_voltage"
 #    battery_type:
 #      name: "${inverter_name} battery_type"
 #    current_max_ac_charging_current:
@@ -42,24 +42,24 @@ sensor:
 #      name: "${inverter_name} max_charging_current"
 #    input_voltage_range:
 #      name: "${inverter_name} input_voltage_range"
-#    output_source_priority:
-#      name: "${inverter_name} output_source_priority"
-#    charger_source_priority:
-#      name: "${inverter_name} charger_source_priority"
+    output_source_priority:
+      name: "${inverter_name} output_source_priority"
+    charger_source_priority:
+      name: "${inverter_name} charger_source_priority"
 #    parallel_max_num:
 #      name: "${inverter_name} parallel_max_num"
 #    machine_type:
 #      name: "${inverter_name} machine_type"
 #    topology:
 #      name: "${inverter_name} topology"
-#    output_mode:
-#      name: "${inverter_name} output_mode"
-#    battery_redischarge_voltage:
-#      name: "${inverter_name} battery_redischarge_voltage"
+    output_mode:
+      name: "${inverter_name} output_mode"
+    battery_redischarge_voltage:
+      name: "${inverter_name} battery_redischarge_voltage"
 #    pv_ok_condition_for_parallel:
 #      name: "${inverter_name} pv_ok_condition_for_parallel"
-#    pv_power_balance:
-#      name: "${inverter_name} pv_power_balance"
+    pv_power_balance:
+      name: "${inverter_name} pv_power_balance"
 
     # QPIGS
     grid_voltage:
@@ -106,14 +106,14 @@ text_sensor:
     pipsolar_id: ${inverter_id}
     device_mode:
       name: "${inverter_name} device_mode"
-#    last_qpigs:
-#      name: "${inverter_name} last_qpigs"
-#    last_qpiri:
-#      name: "${inverter_name} last_qpiri"
-#    last_qmod:
-#      name: "${inverter_name} last_qmod"
-#    last_qflag:
-#      name: "${inverter_name} last_qflag"
+    last_qpigs:
+      name: "${inverter_name} last_qpigs"
+    last_qpiri:
+      name: "${inverter_name} last_qpiri"
+    last_qmod:
+      name: "${inverter_name} last_qmod"
+    last_qflag:
+      name: "${inverter_name} last_qflag"
 
 binary_sensor:
   - platform: pipsolar
@@ -155,7 +155,7 @@ binary_sensor:
 
 switch:
   - platform: pipsolar
-    pipsolar_id: inverter0
+    pipsolar_id: ${inverter_id}
     output_source_priority_utility:
       name: "${inverter_name} output_source_priority_utility"
     output_source_priority_solar:

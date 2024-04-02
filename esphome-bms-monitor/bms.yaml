@@ -25,6 +25,9 @@ script:
     parameters:
       reason: string
     then:
+      - logger.log:
+          format: "Disabling charging on ${bms_id} because %s"
+          args: ["reason"]
       - text_sensor.template.publish:
           id: ${bms_id}_status
           state: !lambda return reason;
@@ -58,16 +61,33 @@ script:
             - text_sensor.template.publish:
                 id: ${bms_id}_status
                 state: "Too cold"
+  - id: ${bms_id}_enable_discharging_script
+    then:
       - if:
           condition:
-            - sensor.in_range:
-                id: ${bms_id}_SOC
-                above: 99.0
+            and:
+              - sensor.in_range:
+                  id: ${bms_id}_SOC
+                  above: 25.0
+              - sensor.in_range:
+                  id: outside_temperature
+                  above: 30.0
+                  below: 100.0
+              - switch.is_off: ${bms_id}_enable_discharging
           then:
-            - switch.turn_off: ${bms_id}_enable_charging
-            - text_sensor.template.publish:
-                id: ${bms_id}_status
-                state: "Fully charged"
+            - switch.turn_on: ${bms_id}_enable_discharging
+  - id: ${bms_id}_disable_discharging_script
+    then:
+      - if:
+          condition:
+            and:
+              - sensor.in_range:
+                  id: ${bms_id}_SOC
+                  below: 20.0
+              - switch.is_on: ${bms_id}_enable_discharging
+          then:
+            - switch.turn_off: ${bms_id}_enable_discharging
+
 sensor:
   - platform: jbd_bms_ble
     jbd_bms_ble_id: ${bms_id}
@@ -77,87 +97,108 @@ sensor:
       name: "${bms_id} charging power"
       device_class: power
       unit_of_measurement: W
+      filters:
+        - throttle_average: 16s
     discharging_power:
       id: ${bms_id}_discharging_power
       name: "${bms_id} discharging power"
       device_class: power
       unit_of_measurement: W
+      filters:
+        - throttle_average: 16s
     state_of_charge:
       id: ${bms_id}_SOC
       name: "${bms_id} SOC"
       device_class: battery
+      filters:
+        - delta: 1.0
       on_value_range:
-        - below: 60.0
+        - above: 1.0
+          below: 18.0
           then:
           - script.execute: ${bms_id}_enable_charging_script
+          - script.execute: ${bms_id}_disable_discharging_script
         - above: 99.0
           then:
-          - script.execute: ${bms_id}_enable_charging_script
+          - script.execute:
+              id: ${bms_id}_disable_charging_script
+              reason: "Battery full"
+          - script.execute: ${bms_id}_enable_discharging_script
+
     capacity_remaining:
       id: ${bms_id}_capacity_remaining
       name: "${bms_id} capacity remaining"
       device_class: energy_storage
       unit_of_measurement: Ah
+      filters:
+        - throttle_average: 300s
+      accuracy_decimals: 1
     total_voltage:
       name: "${bms_id} total voltage"
       id: ${bms_id}_total_voltage
       device_class: voltage
       icon: "mdi:battery-outline"
       accuracy_decimals: 2
+      filters:
+        - throttle_average: 16s
     average_cell_voltage:
       name: "${bms_id} average cell voltage"
       id: ${bms_id}_average_cell_voltage
       device_class: voltage
       icon: "mdi:battery-outline"
       accuracy_decimals: 4
+      filters:
+        - throttle_average: 16s
     delta_cell_voltage:
       name: "${bms_id} delta cell voltage"
       id: ${bms_id}_delta_cell_voltage
       device_class: voltage
       icon: "mdi:battery-outline"
       accuracy_decimals: 4
+      filters:
+        - throttle_average: 16s
       on_value_range:
-        - above: 0.25
+        - above: 0.5
           then:
             - script.execute:
                 id: ${bms_id}_disable_charging_script
                 reason: "Cells unbalanced"
-        - below: 0.15
-          then:
-            - script.execute: ${bms_id}_enable_charging_script
     max_cell_voltage:
       name: "${bms_id} max cell voltage"
       id: ${bms_id}_max_cell_voltage
       device_class: voltage
       icon: "mdi:battery-outline"
       accuracy_decimals: 3
+      filters:
+        - throttle_average: 16s
     min_cell_voltage:
       name: "${bms_id} min cell voltage"
       id: ${bms_id}_min_cell_voltage
       device_class: voltage
       icon: "mdi:battery-outline"
       accuracy_decimals: 3
-
+      filters:
+        - throttle_average: 16s
 
     temperature_1:
       name: "${bms_id} temperature 1"
       device_class: temperature
       unit_of_measurement: "°C"
       filters:
-        - throttle_average: 120s
+        - throttle_average: 32s
     temperature_2:
       name: "${bms_id} temperature 2"
       device_class: temperature
       unit_of_measurement: "°C"
       filters:
-        - throttle_average: 120s
+        - throttle_average: 32s
     temperature_3:
       name: "${bms_id} temperature 3"
       device_class: temperature
       unit_of_measurement: "°C"
       filters:
         - filter_out: nan
-        - throttle_average: 120s
+        - throttle_average: 32s
 
   - platform: template
     name: "${bms_id} total energy remaining"
@@ -183,7 +224,7 @@ sensor:
     device_class: energy
     accuracy_decimals: 2
     filters:
-      - throttle: 60s
+      - throttle: 64s
 
   - platform: total_daily_energy
     name: "${bms_id} energy consumed"
@@ -193,7 +234,7 @@ sensor:
     device_class: energy
     accuracy_decimals: 2
     filters:
-      - throttle: 60s
+      - throttle: 64s
 
 
 text_sensor:
@@ -213,16 +254,28 @@ text_sensor:
       if (id(${bms_id}_charging_power).state) {
         return {"Charging"};
       }
-      if (id(${bms_id}_enable_charging).state == false) {
-        return {"Charging disabled"};
-      }
       if (id(${bms_id}_discharging_power).state) {
         return {"Discharging"};
+      }
+
+      if (id("${bms_id}_disabled")) {
+        return {"Battery disabled"};
+      } else if (!id(${bms_id}_enable_discharging).state) {
+        return {"Discharge disabled"};
+      } else if (!id(${bms_id}_enable_charging).state) {
+        return {"Charge disabled"};
       }
       return {"Idle"};
 
 
+globals:
+  - id: ${bms_id}_disabled
+    type: bool
+    restore_value: no
+    initial_value: 'false'
+
 switch:
+
   - platform: ble_client
     ble_client_id: ble_client_${bms_id}
     name: "${bms_id} enable bluetooth connection"
@@ -233,11 +286,41 @@ switch:
       id: ${bms_id}_enable_charging
       name: "${bms_id} enable charging"
       icon: "mdi:battery-charging"
+      restore_mode: DISABLED
       on_turn_on:
-      - text_sensor.template.publish:
-          id: ${bms_id}_status
-          state: "Normal"
+        - text_sensor.template.publish:
+            id: ${bms_id}_status
+            state: "charging enabled"
+        - if:
+            condition:
+              lambda: 'return ${sync} != 0;'
+            then:
+              - switch.turn_on: ${linked_bms}_enable_charging
+      on_turn_off:
+        - if:
+            condition:
+              lambda: 'return ${sync} != 0;'
+            then:
+              - switch.turn_off: ${linked_bms}_enable_charging
+  - platform: jbd_bms_ble
+    jbd_bms_ble_id: ${bms_id}
     discharging:
       id: ${bms_id}_enable_discharging
       name: "${bms_id} enable discharging"
-      icon: "mdi:battery"
+      icon: "mdi:battery-minus"
+      restore_mode: DISABLED
+      on_turn_on:
+        - text_sensor.template.publish:
+            id: ${bms_id}_status
+            state: "discharging enabled"
+        - if:
+            condition:
+              lambda: 'return ${sync} != 0;'
+            then:
+              - switch.turn_on: ${linked_bms}_enable_discharging
+      on_turn_off:
+        - if:
+            condition:
+              lambda: 'return ${sync} != 0;'
+            then:
+              - switch.turn_off: ${linked_bms}_enable_discharging

@@ -3,6 +3,7 @@
 #include <map>
 #include <utility>
 #include <typeinfo>
+#include "esphome/components/binary_sensor/binary_sensor.h"
 #include "esphome/components/sensor/sensor.h"
 #include "esphome/components/text_sensor/text_sensor.h"
 #include "esphome/components/image/image.h"
@@ -25,6 +26,7 @@ const Color COLOR_HIGHLIGHT = Color(15, 15, 15);
 // BaseFont *LargeFont = nullptr;
 // BaseFont *SmallFont = nullptr;
 
+
 void hbar(Display *it, int x, int y, int width, int height, int max, BaseFont *font, int hue, sensor::Sensor *sensor)
 {
     const int offset = width / 2;
@@ -38,9 +40,9 @@ void hbar(Display *it, int x, int y, int width, int height, int max, BaseFont *f
     unsigned int v = static_cast<unsigned int>(value);
     it->rectangle(x+offset, y, w, height, ESPHSVColor(hue, 220, 30).to_rgb());
     it->filled_rectangle(x+offset+1, y+1, w-2, height-2, ESPHSVColor(hue, 255, 200).to_rgb());
-    it->printf(x, y+1, font, COLOR_SHADOW, "%-11s %4u%s", sensor->get_name().c_str(), v, sensor->get_unit_of_measurement().c_str());
-    it->printf(x-1, y, font, COLOR_HIGHLIGHT, "%-11s %4u%s", sensor->get_name().c_str(), v, sensor->get_unit_of_measurement().c_str());
-    it->printf(x, y, font, COLOR_ON, "%-11s %4u%s", sensor->get_name().c_str(), v, sensor->get_unit_of_measurement().c_str());
+    it->printf(x, y+1, font, COLOR_SHADOW, "%-8s %4u%s", sensor->get_name().c_str(), v, sensor->get_unit_of_measurement().c_str());
+    it->printf(x-1, y, font, COLOR_HIGHLIGHT, "%-8s %4u%s", sensor->get_name().c_str(), v, sensor->get_unit_of_measurement().c_str());
+    it->printf(x, y, font, COLOR_ON, "%-8s %4u%s", sensor->get_name().c_str(), v, sensor->get_unit_of_measurement().c_str());
 }
 
 void statusbar(Display *it, int y, int width, BaseFont *font, ESPTime time) {
@@ -63,31 +65,19 @@ void show_sensor(Display *it, int x, int y, BaseFont *font, Color color, TextAli
     }
 }
 
-void show_sensors(Display *it, int x, int y, int length, sensor::Sensor *sensors[], BaseFont *font, Color color = COLOR_ON)
+void show_sensors(Display *it, std::vector<EntityBase*> &sensors, BaseFont *font, Color color = COLOR_ON)
 {
     int display_width = it->get_width();
     int display_height = it->get_height();
+    int x = 0, y = 36;
 
-    int x_start, y_start;
-    int width, height;
+    int x_start, y_start, width, height;
     auto text = "1IiGgQpPyY";
     it->get_text_bounds(x, y, text, font, TextAlign::TOP_LEFT, &x_start, &y_start, &width, &height);
 
-    for (int i = 0; i < length; i++) {
-
-        auto sensor = sensors[i];
-
-        if (sensor && sensor->has_state()) {
-
-            it->printf(x, y, font, color, TextAlign::TOP_LEFT, "%-11s", sensor->get_name().c_str());
-
-            auto value = sensor->get_state();
-            auto format = "%1.*f%s";
-            it->printf(display_width, y, font, color, TextAlign::TOP_RIGHT, format, sensor->get_accuracy_decimals(), value, sensor->get_unit_of_measurement().c_str());
-        } else {
-            it->printf(x, y, font, color, TextAlign::TOP_LEFT, "%-11s", sensor->get_name().c_str());
-            it->printf(display_width, y, font, color, TextAlign::TOP_RIGHT, "%s", "n/a");
-        }
+    for(EntityBase *sensor : sensors) {
+        it->printf(x, y, font, color, TextAlign::TOP_LEFT, "%-11s", sensor->get_name().c_str());
+        it->printf(display_width, y, font, color, TextAlign::TOP_RIGHT, "%s", sensor->get_display_value().c_str());
         y += height + 1;
         if (y + height > display_height) {
             ESP_LOGE("widget", "Too many sensors for a single page. y > display_height");
@@ -95,6 +85,7 @@ void show_sensors(Display *it, int x, int y, int length, sensor::Sensor *sensors
         }
     }
 }
+
 
 class Label {
   public:

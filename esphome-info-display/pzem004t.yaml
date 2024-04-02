@@ -4,21 +4,42 @@ modbus:
 
 sensor:
   - platform: pzemac
+    id: pzemac1
     modbus_id: modbus1
-    update_interval: 30s
+    update_interval: 10s
     current:
       name: "Utility AC Current"
       id: utility_input_current
+      filters:
+        - or:
+          - throttle: 30s
+          - delta: 1.0
     voltage:
       name: "Utility AC Voltage"
       id: utility_input_voltage
+      filters:
+        - or:
+          - throttle: 30s
+          - delta: 0.2
     power:
       name: "Utility AC Power"
       id: utility_input_power
+      filters:
+        - or:
+          - throttle: 30s
+          - delta: 1.0
     energy:
       name: "Utility AC Energy"
       id: utility_input_energy
+      state_class: total_increasing
+      filters:
+        - or:
+          - throttle: 30s
+          - delta: 1.0
     power_factor:
       name: "Utility AC Power Factor"
       id: utility_input_power_factor
+        filters:
+          - throttle: 30s
+
 

@@ -70,6 +70,7 @@ packages:
       victron_id: charger0
       mac_address: "fdc923f1e120"
       bindkey: !secret charger0_bindkey
+
   charger1: !include
     file: charger.yaml
     vars:
@@ -81,21 +82,27 @@ packages:
     file: bms.yaml
     vars:
       bms_id: bms0
+      linked_bms: bms0
       bms_mac_address: "A4:C1:37:01:62:8B"
-      update_interval: 30s
+      update_interval: 8s
+      sync: 0
 
   bms1: !include
     file: bms.yaml
     vars:
       bms_id: bms1
-      bms_mac_address: "A4:C1:38:E1:D0:0C"
-      update_interval: 30s
+      linked_bms: bms1
+      bms_mac_address: "A4:C1:37:22:97:3B"
+      update_interval: 8s
+      sync: 0
+
 
   # bms2: !include
   #   file: bms.yaml
   #   vars:
   #     bms_id: bms2
   #     bms_mac_address: "A4:C1:37:32:98:27"
+  #     update_interval: 30s
 
   # bms3: !include
   #   file: bms.yaml
@@ -103,12 +110,13 @@ packages:
   #     bms_id: bms3
   #     bms_mac_address: "A4:C1:37:22:97:3B"
 
+i2c:
+  sda: 21
+  scl: 22
+  scan: true
+
 sensor:
-  - platform: wifi_signal
-    name: "WiFi Signal"
-    id: wifi_signal_db
-    update_interval: 60s
-    entity_category: "diagnostic"
+
 
   # - platform: htu21d
   #   update_interval: 60s
@@ -124,22 +132,36 @@ sensor:
   #     device_class: humidity
 
 
+
+  - platform: bmp085
+    temperature:
+      name: "Outside Temperature (BMP180)"
+      filters:
+        - throttle_average: 60s
+    pressure:
+      name: "Outside Pressure"
+      id: outside_pressure
+      filters:
+        - throttle_average: 60s
+    update_interval: 30s
+
+
+  - platform: template
+    name: sea level pressure
+    id: sea_level_pressure
+    unit_of_measurement: "hPa"
+    accuracy_decimals: 2
+    lambda: |-
+      const float ALTITUDE = 380; // meters
+      const float PRESSURE = id(outside_pressure).state; // instantaneous atmospheric pressure reading
+      return PRESSURE / powf(1.0 - (ALTITUDE / 44330.0), 5.2558);
+    update_interval: 30s
+    filters:
+      - throttle_average: 60s
+
   - platform: homeassistant
     name: "Outside Temperature"
     id: outside_temperature
     entity_id: sensor.outside_temperature
     unit_of_measurement: "°F"
     internal: true
-    on_value_range:
-    - below: 33.0
-      then:
-        - script.execute:
-            id: bms0_disable_charging_script
-            reason: Too cold
-        - script.execute:
-            id: bms1_disable_charging_script
-            reason: Too cold
-    - above: 34.5
-      then:
-        - script.execute: bms0_enable_charging_script
-        - script.execute: bms1_enable_charging_script

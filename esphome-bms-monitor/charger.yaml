@@ -24,6 +24,13 @@ sensor:
 
   - platform: victron_ble
     victron_ble_id: ${victron_id}
+    name: "${victron_id} Battery Power"
+    type: BATTERY_POWER
+    unit_of_measurement: W
+    device_class: current
+
+  - platform: victron_ble
+    victron_ble_id: ${victron_id}
     id: ${victron_id}_load_current
     name: "${victron_id} Load Current"
     type: LOAD_CURRENT
@@ -55,7 +62,8 @@ sensor:
     unit_of_measurement: kWh
     state_class: total_increasing
     device_class: energy
-
+    filters:
+      - filter_out: 655.35
   - platform: victron_ble
     victron_ble_id: ${victron_id}
     name: "${victron_id} PV Power"
@@ -88,3 +96,9 @@ text_sensor:
     name: "${victron_id} error"
     type: CHARGER_ERROR
     entity_category: diagnostic
+
+  # - platform: victron_ble
+  #   victron_ble_id: ${victron_id}
+  #   name: "${victron_id} off reason"
+  #   type: OFF_REASON
+  #   entity_category: diagnostic
